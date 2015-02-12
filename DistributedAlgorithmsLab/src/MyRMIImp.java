@@ -11,6 +11,7 @@ public class MyRMIImp implements MyRMI {
 			System.setSecurityManager(new RMISecurityManager());
 		}
 		
+		
 	}
 
 }
