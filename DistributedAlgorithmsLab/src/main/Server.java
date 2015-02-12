@@ -43,9 +43,9 @@ public class Server extends java.rmi.server.UnicastRemoteObject implements Regis
 	}
 	
 	public void activate() {
-		for (ClientImpl c : clients){
-			c.activate(clients);
-		}
+		for(int i=0; i<clients.size(); i++){
+			clients.get(i).activate(clients, i);
+		}		
 	}
 	
 	
