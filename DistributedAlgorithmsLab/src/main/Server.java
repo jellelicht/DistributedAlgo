@@ -59,7 +59,7 @@ public class Server extends java.rmi.server.UnicastRemoteObject implements Regis
 		if(!args[1].isEmpty()){
 			port = Integer.parseInt(args[1]);
 		}
-		int millis = Integer.parseInt(args[0]);
+		int millis = Integer.parseInt(args[0]);x
 		_instance = new Server(port);
 		Registry r = _instance.getRegistry();
 		r.bind("register", _instance);

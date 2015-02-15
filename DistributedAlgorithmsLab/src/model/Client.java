@@ -1,5 +1,5 @@
 package model;
 
-public interface Client extends Peer, LocalProcess {
+public interface Client<T> extends Peer<T>, LocalProcess<T> {
 
 }

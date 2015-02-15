@@ -9,13 +9,14 @@ public class Clock implements Comparable<Clock>{
 		this.pid = pid;
 	}
 	
-	public void inc(){
-		this.tick++;
+	
+	public Clock inc(){
+		return new Clock(this.tick+1);
 	}
 	
-	public void sync(Clock o){
-		this.tick = Math.max(this.tick, o.tick);
-		this.inc();
+	public Clock sync(Clock o){
+		tick = Math.max(this.tick, o.tick);
+		return new Clock(tick+1);
 	}
 	
 	@Override

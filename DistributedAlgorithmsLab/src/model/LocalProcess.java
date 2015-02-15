@@ -1,12 +1,14 @@
 package model;
 
+import impl.Clock;
 import listeners.AckListener;
-import listeners.MessageListener;
+import listeners.MessageDeliveredListener;
 
 
-public interface LocalProcess {
+public interface LocalProcess<T> {
 	//public void addPeersChangedListener(PeersChangedListener p);
-	public void deliverMessage(Message m);
-	//public void addMessageListener(MessageListener m);
-	//public void addAckListener(AckListener a);	
+	public void deliverMessage(Message<T> m);
+	public Clock getClock();
+	public void addMessageDeliveredListener(MessageDeliveredListener mdl);
+	public void addAckListener(AckListener al);	
 }
