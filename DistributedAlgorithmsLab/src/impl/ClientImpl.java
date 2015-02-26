@@ -14,7 +14,7 @@ import model.MessageQueue;
 import model.Peer;
 import model.RegisterService;
 
-public class ClientImpl implements Client<String>, AckListener, MessageDeliveredListener {
+public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements Client<String>, AckListener, MessageDeliveredListener {
 	private ArrayList<Peer<String>> peers;
 	private int pid;
 	private ArrayList<AckListener> ackListeners;
@@ -22,19 +22,22 @@ public class ClientImpl implements Client<String>, AckListener, MessageDelivered
 	private MessageQueue<String> msgQueue;
 	private Clock clock;
 	
-	public ClientImpl(){
-		ackListeners = new ArrayList<AckListener>();
-		messageDeliveredListeners = new ArrayList<MessageDeliveredListener>();
+	public ClientImpl() throws RemoteException{
+		//ackListeners = new ArrayList<AckListener>();
+		//messageDeliveredListeners = new ArrayList<MessageDeliveredListener>();
+		peers = new ArrayList<Peer<String>>();
 	}
 
-	public void activate(ArrayList<ClientImpl> peers, int i) {
-		for (ClientImpl c : peers){
+	@Override
+	public void activate(ArrayList<Client> peers, int i) throws RemoteException {
+		for (Client c : peers){
 			this.peers.add(c);
 		}
 		
 		this.msgQueue = new MessageQueue<String>(this.peers);
 		this.pid = i;
 		this.clock = new Clock(pid);
+		System.out.println("Activated client");
 	}
 	
 	public void addMsg(Message<String> m){

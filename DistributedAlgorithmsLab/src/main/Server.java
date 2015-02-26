@@ -16,7 +16,7 @@ import model.RegisterService;
 public class Server extends java.rmi.server.UnicastRemoteObject implements RegisterService {
 	private static Server _instance;
 	private int port;
-	private ArrayList<ClientImpl> clients;
+	private ArrayList<Client> clients;
 	private Registry registry;
 	
 	public Registry getRegistry(){
@@ -25,27 +25,28 @@ public class Server extends java.rmi.server.UnicastRemoteObject implements Regis
 	
 	public Server(int port) throws RemoteException {
 		this.port = port;
-		clients = new ArrayList<ClientImpl>();
+		clients = new ArrayList<Client>();
 		
-		if (System.getSecurityManager() == null) {
+		/*if (System.getSecurityManager() == null) {
 			System.setSecurityManager(new RMISecurityManager());
-		}
+		}*/
 		this.registry = LocateRegistry.createRegistry(port);
 	}
 	
 	
 	
 	@Override
-	public void register(ClientImpl c) throws RemoteException {
+	public void register(Client c) throws RemoteException {
 		// TODO Auto-generated method stub
 		clients.add(c);
 		// TODO synchronised?
 	}
 	
-	public void activate() {
+	public void activate() throws RemoteException{
 		for(int i=0; i<clients.size(); i++){
 			clients.get(i).activate(clients, i);
 		}		
+		System.out.println("Server activate event");
 	}
 	
 	
