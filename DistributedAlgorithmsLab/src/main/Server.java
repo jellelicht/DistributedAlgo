@@ -67,6 +67,7 @@ public class Server extends java.rmi.server.UnicastRemoteObject implements Regis
 		_instance.activate();
 		r.unbind("register");
 		
+		
 	}
 
 	
