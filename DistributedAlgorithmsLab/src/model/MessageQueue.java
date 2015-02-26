@@ -7,9 +7,9 @@ import java.util.Queue;
 
 public class MessageQueue<T>  {
 
-	private ArrayList<Peer> peers;
-	public MessageQueue(ArrayList<Peer> peers){
-		this.peers = peers;
+	private ArrayList<Peer<T>> peers;
+	public MessageQueue(ArrayList<Peer<T>> peers2){
+		this.peers = peers2;
 		this.messageQueue = new PriorityQueue<MessageEntry<T>>();
 	}
 	
@@ -44,10 +44,10 @@ public class MessageQueue<T>  {
 	private class MessageEntry<T> implements Comparable<MessageEntry<T>> {
 		public Message<T> m;
 		public ArrayList<Ack> acks;
-		private ArrayList<Peer> peers;
+		private ArrayList<Peer<T>> peers;
 
-		public MessageEntry(ArrayList<Peer> peers, Message<T> m){
-			this.peers = peers;
+		public MessageEntry(ArrayList<Peer<T>> peers2, Message<T> m){
+			this.peers = peers2;
 			acks = new ArrayList<Ack>();
 			this.m = m;
 		}

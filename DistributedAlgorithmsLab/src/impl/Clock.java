@@ -21,8 +21,6 @@ public class Clock implements Comparable<Clock>{
 	
 	@Override
 	public int compareTo(Clock o) {
-		// TODO Auto-generated method stub
-		
 		if(this.tick < o.tick) { return -1; }
 		else if (this.tick == o.tick && this.pid < o.pid) { return -1; }
 		else { return 1; }
