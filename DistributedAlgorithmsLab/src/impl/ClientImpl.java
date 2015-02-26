@@ -30,7 +30,7 @@ public class ClientImpl implements Client<String>, AckListener, MessageDelivered
 	}
 
 	@Override
-	public void putMessage(Message<String> m) throws RemoteException {
+	public void Peer_putMessage(Message<String> m) throws RemoteException {
 		for(Peer p : peers){
 			// TODO something clock
 			// TODO something update clock in message?			
@@ -43,7 +43,7 @@ public class ClientImpl implements Client<String>, AckListener, MessageDelivered
 	
 	//someone ack'd a message
 	@Override
-	public void ackMessage(Ack a) throws RemoteException {
+	public void Peer_ackMessage(Ack a) throws RemoteException {
 		// TODO Auto-generated method stub
 		for(AckListener al: ackListeners){
 			al.receiveAck(a);
