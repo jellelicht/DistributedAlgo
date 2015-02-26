@@ -37,13 +37,11 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.msgQueue = new MessageQueue<String>(this.peers);
 		this.pid = i;
 		this.clock = new Clock(pid);
-		System.out.println("Activated client " + pid);
+		System.out.println("Activated client");
 		try {
 			Thread.sleep(1000);
 			Thread.sleep((long)(Math.random() * 10000));
 			Broadcast(GenerateMsg());
-			Thread.sleep(15000);
-			System.out.println("Exit client " + pid);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -51,12 +49,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	public void addMsg(Message<String> m){
 		this.msgQueue.insert(m);
-		System.out.println("Message to Queue " + m.toString());
 	}
 	
 	public void Broadcast(Message<String> m) throws RemoteException{
-		System.out.println("Message Broadcast " + m.toString());
-		
 		for(Peer<String> p : peers){
 			p.Peer_putMessage(m);
 		}
@@ -69,7 +64,8 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 
 	@Override
 	public void Peer_putMessage(Message<String> m) throws RemoteException {
-		this.addMsg(m);		//this.clock = this.clock.inc();
+		this.msgQueue.insert(m);
+		//this.clock = this.clock.inc();
 		
 		for(Peer<String> p : peers){
 			// TODO something clock
@@ -81,7 +77,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	//someone ack'd a message
 	@Override
 	public void Peer_ackMessage(Ack a) throws RemoteException {
-		System.out.println("Ack received " + a.toString());
 		this.msgQueue.handleAck(a);
 		Message<String> m = this.msgQueue.checkDelivery();
 		
@@ -115,7 +110,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	@Override
 	public void deliverMessage(Message<String> m) {
 		this.clock = this.clock.sync(m.getTimestamp());
-		System.out.println("Message delivered " + m.toString());
+		System.out.println("Message recieved " + m.toString());
 	}
 	
 	// DeliveredMessageListener

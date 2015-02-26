@@ -3,11 +3,6 @@ package impl;
 import java.io.Serializable;
 
 public class Clock implements Comparable<Clock>, Serializable{
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	
 	private int tick;
 	private int pid;
 	

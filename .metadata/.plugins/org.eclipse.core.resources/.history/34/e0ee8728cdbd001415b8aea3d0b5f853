@@ -69,7 +69,8 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 
 	@Override
 	public void Peer_putMessage(Message<String> m) throws RemoteException {
-		this.addMsg(m);		//this.clock = this.clock.inc();
+		this.msgQueue.insert(m);
+		//this.clock = this.clock.inc();
 		
 		for(Peer<String> p : peers){
 			// TODO something clock
@@ -81,7 +82,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	//someone ack'd a message
 	@Override
 	public void Peer_ackMessage(Ack a) throws RemoteException {
-		System.out.println("Ack received " + a.toString());
 		this.msgQueue.handleAck(a);
 		Message<String> m = this.msgQueue.checkDelivery();
 		

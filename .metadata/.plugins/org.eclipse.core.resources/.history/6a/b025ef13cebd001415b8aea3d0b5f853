@@ -59,7 +59,7 @@ public class MessageQueue<T>  {
 		
 		public boolean ackedByAll(){
 			// No direct mapping between peer and ack right now
-			return peers.size()==acks.size();
+			return peers.size()>acks.size();
 		}
 	}
 	

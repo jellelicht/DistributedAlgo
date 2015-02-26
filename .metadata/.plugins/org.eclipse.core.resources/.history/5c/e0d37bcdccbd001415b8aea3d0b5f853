@@ -1,15 +1,8 @@
 package model;
 
-import java.io.Serializable;
-
 import impl.Clock;
 
-public class Ack implements Serializable {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	
+public class Ack {
 	public Clock ackStamp;
 	public Clock messageStamp;
 	

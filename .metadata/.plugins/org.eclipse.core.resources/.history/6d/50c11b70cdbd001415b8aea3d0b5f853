@@ -81,7 +81,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	//someone ack'd a message
 	@Override
 	public void Peer_ackMessage(Ack a) throws RemoteException {
-		System.out.println("Ack received " + a.toString());
 		this.msgQueue.handleAck(a);
 		Message<String> m = this.msgQueue.checkDelivery();
 		

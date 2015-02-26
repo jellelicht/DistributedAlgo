@@ -1,15 +1,8 @@
 package model;
 
-import java.io.Serializable;
-
 import impl.Clock;
 
-public class Message<T> implements Comparable<Message<T>>, Serializable {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	
+public class Message<T> implements Comparable<Message<T>> {
 	private T payload;
 	private Clock timestamp;
 	
