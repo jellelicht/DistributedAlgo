@@ -96,13 +96,20 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 						int id = msg.getPID();
 						Peer p = findPeer(id);
 						
-						p.putMessage(new MessageImpl(MessageType.POSTPONED, this.ts, this.pid));
+						if(p == null) {
+							throw new RuntimeException("Peer ID not known");
+						} else {
+							p.putMessage(new MessageImpl(MessageType.POSTPONED, this.ts, this.pid));
+						}
 					} else  {
 						if (!this.inquiring) {
 							this.inquiring = true;
 							int id = this.grantData.pid;
 							Peer p = findPeer(id);
-							p.putMessage(new MessageImpl(MessageType.INQUIRE, this.ts, this.pid));
+							
+							if (p == null) {
+								
+							}
 						}
 					}
 				}

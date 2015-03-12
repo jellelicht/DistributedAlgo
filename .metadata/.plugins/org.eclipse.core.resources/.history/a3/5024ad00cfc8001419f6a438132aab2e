@@ -94,15 +94,22 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 					if (( this.grantData.ts.compareTo(msg.getTimeStamp()) < 0 ) ||
 							head.getTimeStamp().compareTo(msg.getTimeStamp()) < 0) {
 						int id = msg.getPID();
-						Peer p = findPeer(id);
+						Peer p = null;
+						for (PeerEntry pe : this.peers) {
+							if(pe.peerId == id) {
+								p = pe.p;
+							}
+						}
 						
-						p.putMessage(new MessageImpl(MessageType.POSTPONED, this.ts, this.pid));
+						if(p == null) {
+							throw new RuntimeException("Peer ID not known");
+						} else {
+							p.putMessage(new MessageImpl(MessageType.POSTPONED, this.ts, this.pid));
+						}
 					} else  {
 						if (!this.inquiring) {
 							this.inquiring = true;
-							int id = this.grantData.pid;
-							Peer p = findPeer(id);
-							p.putMessage(new MessageImpl(MessageType.INQUIRE, this.ts, this.pid));
+							
 						}
 					}
 				}
@@ -120,21 +127,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		default:
 			break;
 		}
-	}
-
-	private Peer findPeer(int id) {
-		Peer p = null;
-		for (PeerEntry pe : this.peers) {
-			if(pe.peerId == id) {
-				p = pe.p;
-			}
-		}
-		
-		if(p == null) {
-			throw new RuntimeException("Peer ID not known");
-		}
-		
-		return p;
 	}
 	
 	@Override

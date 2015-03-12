@@ -20,10 +20,10 @@ import org.da.util.PeerEntry;
 public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements Client {
 
 	private static final long serialVersionUID = 1L;
-	private GrantData grantData;
 	private List<PeerEntry> peers;
 	private Map<Integer, Link> requestSet;
 	private List<Message> backlog;
+	private int currentGrantID;
 	private Boolean inCriticalState;
 	private Boolean inquiring;
 	private Boolean hasGrantedProcess;
@@ -80,8 +80,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			case REQUEST : 
 				if(!this.hasGrantedProcess) {
 					this.ts = this.ts.sync(msg.getTimeStamp());
-					this.grantData.pid = msg.getPID();
-					this.grantData.ts = msg.getTimeStamp();
+					this.currentGrantID = msg.getPID();
 					Message currentGrant = new MessageImpl(MessageType.GRANT, ts, this.pid);
 					
 					Link l = this.requestSet.get(msg.getPID());
@@ -91,18 +90,25 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 					this.backlog.add(msg);
 					Message head = this.backlog.get(0);
 					
-					if (( this.grantData.ts.compareTo(msg.getTimeStamp()) < 0 ) ||
+					if (( currentGrant.getTimeStamp().compareTo(msg.getTimeStamp()) < 0 ) ||
 							head.getTimeStamp().compareTo(msg.getTimeStamp()) < 0) {
 						int id = msg.getPID();
-						Peer p = findPeer(id);
+						Peer p = null;
+						for (PeerEntry pe : this.peers) {
+							if(pe.peerId == id) {
+								p = pe.p;
+							}
+						}
 						
-						p.putMessage(new MessageImpl(MessageType.POSTPONED, this.ts, this.pid));
+						if(p == null) {
+							throw new RuntimeException("Peer ID not known");
+						} else {
+							p.putMessage(new MessageImpl(MessageType.POSTPONED, this.ts, this.pid));
+						}
 					} else  {
 						if (!this.inquiring) {
 							this.inquiring = true;
-							int id = this.grantData.pid;
-							Peer p = findPeer(id);
-							p.putMessage(new MessageImpl(MessageType.INQUIRE, this.ts, this.pid));
+							
 						}
 					}
 				}
@@ -121,21 +127,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			break;
 		}
 	}
-
-	private Peer findPeer(int id) {
-		Peer p = null;
-		for (PeerEntry pe : this.peers) {
-			if(pe.peerId == id) {
-				p = pe.p;
-			}
-		}
-		
-		if(p == null) {
-			throw new RuntimeException("Peer ID not known");
-		}
-		
-		return p;
-	}
 	
 	@Override
 	public void activate(List<PeerEntry> peers, Integer ownId)
@@ -148,7 +139,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.ts = new TimeStamp(0, this.pid);
 		this.requestSet = new HashMap<Integer, Link>();
 		this.backlog = new ArrayList<Message>();
-		this.grantData = null;
+		this.currentGrantID = 0; // Doesnt matter for initilisation
 	}
 	
 	public static void main(String[] args) throws InterruptedException, MalformedURLException, RemoteException, NotBoundException{

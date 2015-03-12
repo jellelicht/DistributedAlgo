@@ -102,7 +102,10 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 							this.inquiring = true;
 							int id = this.grantData.pid;
 							Peer p = findPeer(id);
-							p.putMessage(new MessageImpl(MessageType.INQUIRE, this.ts, this.pid));
+							
+							if (p == null) {
+								
+							}
 						}
 					}
 				}
