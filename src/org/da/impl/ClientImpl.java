@@ -6,6 +6,7 @@ import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.da.model.Ack;
 import org.da.model.Client;
@@ -58,9 +59,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			throw new RuntimeException("Received an Acknowledgement before links were correctly setup");
 		}
 		System.out.println("Proc " + this.pid + "to (link)queue: " + a.toString());
-		placeholder.addDeliverable(new DeliverableImpl(a));
-		this.clock = this.clock.inc();
-		
+		placeholder.addDeliverable(new DeliverableImpl(a));		
 	}
 
 	@Override
@@ -77,17 +76,27 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	private void send() throws RemoteException{
+		this.clock = this.clock.inc();
 		Message m = new MessageImpl(this.clock);
 		System.out.println("Proc " + this.pid + " sending: " + m.toString());
 		for(PeerEntry pe: peers){
 			pe.p.putMessage(m);
 		}
-		this.clock = this.clock.inc();
+		
 	}
 	
-	public void mainLoop() throws InterruptedException, RemoteException{
-		int todo = 5;
-		int rounds = 100;
+	private boolean getRandBoolean(){
+	    Random random = new Random();
+	    return random.nextBoolean();
+	}
+	
+	private int getRandSendInterval(){
+		Random random = new Random();
+		return random.nextInt(200);
+	}
+	
+	public void mainLoop(int rounds, int todo) throws InterruptedException, RemoteException{
+		
 		while(true){
 			synchronized(this.loopFlag){
 				if (!this.loopFlag){
@@ -96,7 +105,8 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			}
 			updateQueue();
 			handleQueue();	
-			if(this.pid == 0 && todo-- > 0){
+			if(getRandBoolean() && todo-- > 0){
+				Thread.sleep(getRandSendInterval());
 				send();
 			}
 			if(rounds-- == 0){
@@ -110,10 +120,14 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		Message m = queue.pop();
 		if(m == null) {
 			System.out.println("No delivery this round");
+			Message m_ack = queue.peekNotAcked();
+			if(m_ack != null){
+				ackMessage(m_ack);
+				queue.setAckedTop();
+			}
 		} else {
-			System.out.println("Deliver...");
 			this.clock = this.clock.sync(m.getTimeStamp());
-			System.out.println("Proc" + this.pid + " delivery: " + m.toString());
+			System.out.println("[DELIVERY] Proc " + this.pid + " delivery: " + m.toString());
 		}
 		
 	}
@@ -123,20 +137,16 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			Deliverable d;
 			while(null != (d = l.popDeliverable()) ){
 				if(d.isAck()){
-					handleAck(d.getAck());
+					queue.acknowledge(d.getAck());
 				} else if (d.isMessage()){
-					handleMessage(d.getMessage());
+					queue.insert(d.getMessage());
 				}
 			}
 		}
 	}
 	
-	private void handleAck(Ack a){
-		queue.acknowledge(a);
-	}
-	
-	private void handleMessage(Message m){
-		queue.insert(m);
+	private void ackMessage(Message m){
+		this.clock = this.clock.inc();
 		for(PeerEntry pe : peers){
 			try {
 				System.out.println("Proc " + this.pid + " acking " + m.toString() + " to Proc " + pe.peerId);
@@ -167,6 +177,14 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		Server server = (Server) java.rmi.Naming.lookup("rmi://localhost:1089/register");				
 		ClientImpl c = new ClientImpl();
 		
+		if(args.length < 2){
+			throw new RuntimeException("You need to supply both numMessages and numRounds as arguments");
+		}
+		
+		int messages = Integer.valueOf(args[0]);
+		int rounds = Integer.valueOf(args[1]);
+		
+		
 		server.register(c);
 		int waitRounds = 20;
 		while(!c.loopFlag && waitRounds > 0){
@@ -174,7 +192,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			waitRounds--;
 		}
 		Thread.sleep(2000); // settling time for other processes
-		c.mainLoop();
+		c.mainLoop(rounds, messages);
 	}
 
 }

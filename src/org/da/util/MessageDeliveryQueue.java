@@ -16,6 +16,7 @@ public class MessageDeliveryQueue{
 	private final int num_acks; 	
 	private final List<MessageQueueEntry> backingList;
 	
+	
 	public MessageDeliveryQueue(int peersAmt){
 		this.num_acks = peersAmt;
 		 backingList = new ArrayList<MessageQueueEntry>();
@@ -66,13 +67,33 @@ public class MessageDeliveryQueue{
 		return retval;
 	}
 	
+	public Message peekNotAcked(){
+		Message retval = null;
+		if(backingList.size() > 0){
+			MessageQueueEntry mqe = backingList.get(0);
+			if(!mqe.acked){
+				retval = mqe.m;				
+			}
+		}
+		return retval;
+	}
+	
+	public void setAckedTop(){
+		if(backingList.size() > 0){
+			MessageQueueEntry mqe = backingList.get(0);
+			mqe.acked = true;
+		}
+	}
+	
 	class MessageQueueEntry {
 		public Message m;
-		public List<Ack> acks; 
+		public List<Ack> acks;
+		public boolean acked;
 		
 		public MessageQueueEntry(Message m){
 			this.m = m;
 			acks = new ArrayList<Ack>(num_acks);
+			acked = false;
 		}
 	}
 }
