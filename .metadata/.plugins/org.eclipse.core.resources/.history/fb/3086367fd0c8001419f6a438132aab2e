@@ -26,7 +26,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private List<Message> backlog;
 	private Boolean inCriticalState;
 	private Boolean inquiring;
-	private Boolean postponed;
 	private Boolean hasGrantedProcess;
 	private Integer pid;
 	private TimeStamp ts;
@@ -110,10 +109,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				}	
 				break;
 			case GRANT : 
-				this.noGrants += 1;
-				if(this.noGrants == this.requestSet.size()) {
-					
-				}
 				break;
 			case INQUIRE : 
 				break;
@@ -150,7 +145,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.inCriticalState = false;
 		this.hasGrantedProcess = false;
 		this.inquiring = false;
-		this.postponed = false;
 		this.pid = ownId;
 		this.ts = new TimeStamp(0, this.pid);
 		this.requestSet = new HashMap<Integer, Link>();
