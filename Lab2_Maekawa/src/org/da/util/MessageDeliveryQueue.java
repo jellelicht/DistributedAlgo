@@ -33,7 +33,7 @@ public class MessageDeliveryQueue{
 			if(newMessage.compareTo(placeholder) == -1){
 				break;
 			} else if (newMessage.compareTo(placeholder) == 0){
-				throw new RuntimeException(name + ": Double message insertion");
+				throw new RuntimeException(name + ": Double message insertion: " +m.toString() + ", ts: "+ m.getTimeStamp().toString());
 			}
 		}
 		backingList.add(i, m);

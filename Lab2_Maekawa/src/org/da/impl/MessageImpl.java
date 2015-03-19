@@ -37,6 +37,6 @@ public class MessageImpl implements Message {
 	
 	@Override
 	public String toString(){
-		return "MessageType: " + this.msgType.toString();
+		return "MessageType: " + this.msgType.toString() + " TS: " + ts.toString();
 	}
 }

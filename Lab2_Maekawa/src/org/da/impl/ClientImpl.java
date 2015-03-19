@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.da.model.Client;
 import org.da.model.Link;
@@ -37,10 +38,26 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private int noGrants;
 	private boolean outstandingRequest;
 
+	@Override
+	public String toString() {
+		return "ClientImpl [grantData=" + grantData + ", inCriticalState="
+				+ inCriticalState + ", inquiring=" + inquiring + ", inquired="
+				+ inquired + ", postponed=" + postponed
+				+ ", hasGrantedProcess=" + hasGrantedProcess + ", pid=" + pid
+				+ ", ts=" + ts + ", noGrants=" + noGrants
+				+ ", outstandingRequest=" + outstandingRequest + "]";
+	}
+
 	protected ClientImpl() throws RemoteException {
 		super();
 		requestSet = new HashMap<Integer, Link>();
 	}
+
+	private boolean getRandBoolean(){
+	    Random random = new Random();
+	    return random.nextBoolean();
+	}
+
 
 	// upon receiving a request message from a process
 	private void grantProccess(int pid) {
@@ -83,11 +100,12 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	// msg should be either REQUEST OR RELEASE
 	public void BroadCastMsg(Message msg) {
-		log("Broadcasting message "+ msg.toString());
+		log("Broadcasting message /and inc stuff"+ msg.toString());
 		this.ts = this.ts.inc();
+		Message newMessage = new MessageImpl(msg.getMessageType(), msg.getTimeStamp().inc(), this.pid);
 		for (PeerEntry pe : this.peers) {
 			try {
-				pe.p.putMessage(msg);
+				pe.p.putMessage(newMessage);
 			} catch (RemoteException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -109,13 +127,14 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				this.requestBacklog.insert(msg);
 				if(this.hasGrantedProcess) {
 					Message request = this.requestBacklog.peek();
-					if(msg != request){
+					if(msg.getTimeStamp().compareTo(request.getTimeStamp()) == -1 &&
+							grantData.ts.compareTo(msg.getTimeStamp()) == -1){
 						sendMsg(MessageType.POSTPONED, msg.getPID());
 					}
 				}	
 				break;
 			case GRANT : 
-				log("Received grant, current noGrants:" + noGrants);
+				log("Received grant, old noGrants:" + noGrants);
 				this.noGrants += 1;
 				if(this.noGrants == this.requestSet.size()) {
 					log("Enough grants to enter CS");
@@ -130,7 +149,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			case RELINQUISH : 
 				this.inquiring = false;
 				this.hasGrantedProcess = false;
-				this.requestBacklog.insert(new MessageImpl(MessageType.REQUEST, this.grantData.ts, this.grantData.pid));
+				//this.requestBacklog.insert(new MessageImpl(MessageType.REQUEST, this.grantData.ts, this.grantData.pid));
 				break;
 			case RELEASE : 
 				Release();
@@ -148,7 +167,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		if(null != (request = this.requestBacklog.peek())) {	
 			if(hasGrantedProcess){
 				if(!isGrantedRequest(request)){
+					log("COULD inquire");
 					if (!this.inquiring) {
+						log("inquiring...");
 						this.inquiring = true;
 						sendMsg(MessageType.INQUIRE, this.grantData.pid);
 					}
@@ -161,8 +182,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 
 	
 	private boolean isGrantedRequest(Message m){
-		return m.getMessageType() == MessageType.REQUEST &&
-				(m.getTimeStamp().compareTo(grantData.ts) == 0);
+		return (m.getTimeStamp().compareTo(grantData.ts) == 0);
 	}
 	
 	private void Grant(Message request) throws RemoteException{
@@ -174,6 +194,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	private void Release(){
+		log("Releasing...");
 		this.hasGrantedProcess = false;
 		this.inquiring = false;		
 		this.requestBacklog.Remove(new MessageImpl(MessageType.REQUEST, this.grantData.ts, this.grantData.pid));
@@ -195,8 +216,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	private void sendMsg(MessageType t, int peerId){
-		log("Sending MessageType " + t.toString() + " to Peer "+ peerId);
+		
 		this.ts = this.ts.inc();
+		log("Sending MessageType " + t.toString() + " to Peer "+ peerId + " at " + this.ts.toString());
 		try {
 			findPeer(peerId).putMessage(new MessageImpl(t, this.ts, this.pid));
 		} catch (RemoteException e) {
@@ -236,29 +258,42 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 	}
 	
-	private void startRequesting(){
+	private void startRequesting() throws InterruptedException{
 		// call broadcast
 		log("startRequesting");
 		this.outstandingRequest = true;
+		Thread.sleep(new Random().nextInt(1500));
+
 		this.BroadCastMsg(new MessageImpl(MessageType.REQUEST, this.ts, this.pid));
 		
 	}
 	
+	private boolean chance(int frac){
+		for(int i=0; i<frac; i++){
+			if(!getRandBoolean()) return false;
+		}
+		return true;
+	}
+	
 	public void mainLoop(int num_rounds, int num_requests) throws InterruptedException, RemoteException{
 		while(num_rounds-- > 0){
+			Thread.sleep(new Random().nextInt(100));
+
 			log("Round " + num_rounds);
-			Thread.sleep(100);
-			if(!outstandingRequest && this.pid == 0 && num_requests-- > 0){
+			if(!outstandingRequest && chance(3) && num_requests-- > 0){
 				startRequesting();
 			}
 			if(inquired){
 				// do inquire receive msg body
+				log("handling inquired, whole state: " + this.toString());
 				if(this.postponed || (this.noGrants == this.requestSet.size())){
+					log("either postponed or noGrants is sufficient");
 					if(this.postponed) {
 						for(Integer i : this.inquirers) {
 							sendMsg(MessageType.RELINQUISH, i);
 							this.noGrants -= 1;
 						}
+						
 						this.inquired = false;
 						this.inquirers.clear();
 					}
@@ -268,22 +303,21 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				if(inCriticalState) {
 					// do random amount of work
 					log("In critical section");
-					Thread.sleep(100);
+					Thread.sleep(new Random().nextInt(500));
 					log("Done critical section");
 					this.inCriticalState = false;
 					this.inquired = false;
 					this.outstandingRequest = false;
 					// Release bcast
 					this.BroadCastMsg(new MessageImpl(MessageType.RELEASE, this.ts, this.pid));
-				} else {
-					updateMessages();
-					Message m = null;
-					while (null != (m = this.queue.pop())){
-						this.ReceiveMsg(m);
-					}
-					handleRequests();
 				}
 			} 
+			updateMessages();
+			Message m = null;
+			while (null != (m = this.queue.pop())){
+				this.ReceiveMsg(m);
+			}
+			handleRequests();
 		}
 	}
 	
@@ -295,10 +329,20 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		// setup registry
 		Server server = (Server) java.rmi.Naming.lookup("rmi://localhost:1089/register");				
 		ClientImpl c = new ClientImpl();
+
+		if(args.length < 2){
+			throw new RuntimeException("You need to supply both CS_entries and numRounds as arguments");
+		}
+		
+		int CS_entries = Integer.valueOf(args[0]);
+		int rounds = Integer.valueOf(args[1]);
+
+
 		
 		server.register(c);
 		Thread.sleep(10000);
-		c.mainLoop(100, 2);
+		
+		c.mainLoop(rounds, CS_entries);
 //		int waitRounds = 20;
 //		while(!c.loopFlag && waitRounds > 0){
 //			Thread.sleep(500);

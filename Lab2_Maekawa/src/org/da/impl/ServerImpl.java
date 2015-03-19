@@ -43,10 +43,15 @@ public class ServerImpl extends java.rmi.server.UnicastRemoteObject implements S
 	}
 	
 	public static void main(String [] args) throws RemoteException, InterruptedException{
+		if(args.length < 1){
+			throw new RuntimeException("First argument for server should be amount of ms before activate event");
+		}
+		int wait = Integer.valueOf(args[0]);
+
 		ServerImpl s= new ServerImpl();
 		Registry registry = LocateRegistry.createRegistry(1089);
 		registry.rebind("register", s);
-		Thread.sleep(8000);
+		Thread.sleep(wait);
 		s.activateClients();		
 	}
 }
