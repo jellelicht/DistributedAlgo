@@ -85,31 +85,20 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 //
 //		}
 	}
+	
+	
 
 	public void ReceiveMsg(Message msg) throws RemoteException {
+		this.ts = this.ts.sync(msg.getTimeStamp());
 		switch(msg.getMessageType()) {
-			case REQUEST : 
-				if(!this.hasGrantedProcess) {
-					this.ts = this.ts.sync(msg.getTimeStamp());
-					this.grantData.pid = msg.getPID();
-					this.grantData.ts = msg.getTimeStamp();
-					Message currentGrant = new MessageImpl(MessageType.GRANT, ts, this.pid);
-					
-					Link l = this.requestSet.get(msg.getPID());
-					l.addMessage(currentGrant);				
-					this.hasGrantedProcess = true;
-				} else {
-					this.requestBacklog.insert(msg);
-					Message head = this.requestBacklog.peek();
-					
-					if (( this.grantData.ts.compareTo(msg.getTimeStamp()) < 0 ) ||
-							head.getTimeStamp().compareTo(msg.getTimeStamp()) < 0) {
+			case REQUEST :
+				this.requestBacklog.insert(msg);
+				if(this.hasGrantedProcess) {
+					Message request = this.requestBacklog.peek();
+					if(msg != request){
 						sendMsg(MessageType.POSTPONED, msg.getPID());
 					} else  {
-						if (!this.inquiring) {
-							this.inquiring = true;
-							sendMsg(MessageType.INQUIRE, this.grantData.pid);
-						}
+						
 					}
 				}	
 				break;
@@ -134,7 +123,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 					// if (postponed) then
 							// no grants <- no grants-1
 							// send(relinquish) to P j
-				
+				// TODO TODO
 				if(!this.postponed || (this.noGrants == this.requestSet.size())){
 					this.inquired = true;
 					break;
@@ -156,18 +145,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				this.inquiring = false;
 				this.hasGrantedProcess = false;
 				this.requestBacklog.insert(new MessageImpl(MessageType.REQUEST, this.grantData.ts, this.grantData.pid));
-				this.grantData.pid = this.requestBacklog.peek().getPID();
-				this.grantData.ts = this.requestBacklog.peek().getTimeStamp();	
-				this.hasGrantedProcess = true;
-				Peer p = findPeer(this.grantData.pid);
-				p.putMessage(new MessageImpl(MessageType.GRANT, this.ts, this.pid));
 				break;
 			case RELEASE : 
 				Release();
-				Message request = null;
-				if(null != (request = this.requestBacklog.peek())) {
-					this.Grant(request);
-				}
 				break;
 			case POSTPONED : 
 				this.postponed = true;
@@ -175,6 +155,28 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		default:
 			break;
 		}
+	}
+	
+	private void handleRequests() throws RemoteException{
+		Message request = null;
+		if(null != (request = this.requestBacklog.peek())) {	
+			if(hasGrantedProcess){
+				if(!isGrantedRequest(request)){
+					if (!this.inquiring) {
+						this.inquiring = true;
+						sendMsg(MessageType.INQUIRE, this.grantData.pid);
+					}
+				}
+			} else {
+				Grant(request);
+			}
+		}
+	}
+
+	
+	private boolean isGrantedRequest(Message m){
+		return m.getMessageType() == MessageType.REQUEST &&
+				(m.getTimeStamp().compareTo(grantData.ts) == 0);
 	}
 	
 	private void Grant(Message request) throws RemoteException{
