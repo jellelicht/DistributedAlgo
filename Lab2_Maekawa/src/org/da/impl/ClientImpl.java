@@ -35,9 +35,11 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private Integer pid;
 	private TimeStamp ts;
 	private int noGrants;
+	private boolean outstandingRequest;
 
 	protected ClientImpl() throws RemoteException {
 		super();
+		requestSet = new HashMap<Integer, Link>();
 	}
 
 	// upon receiving a request message from a process
@@ -70,6 +72,13 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		l.addMessage(msg);
 	}
 	
+	private void setupLinks(){
+		for(PeerEntry pe: this.peers){
+			requestSet.put(pe.peerId, new LinkImpl());
+		}
+	}
+
+	
 	// msg should be either REQUEST OR RELEASE
 	public void BroadCastMsg(Message msg) {
 		this.ts = this.ts.inc();
@@ -98,8 +107,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 					Message request = this.requestBacklog.peek();
 					if(msg != request){
 						sendMsg(MessageType.POSTPONED, msg.getPID());
-					} else  {
-						
 					}
 				}	
 				break;
@@ -108,14 +115,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				if(this.noGrants == this.requestSet.size()) {
 					this.postponed = false;
 					this.inCriticalState = true;
-					for (PeerEntry pe : this.peers) {
-						try {
-							pe.p.putMessage(new MessageImpl(MessageType.RELEASE, this.ts, this.pid));
-						} catch (RemoteException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
 				}
 				break;
 			case INQUIRE :
@@ -217,6 +216,8 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.inquirers = new ArrayList<Integer>();
 		this.grantData = null;
 		this.noGrants = 0;
+		this.outstandingRequest = false;
+		this.setupLinks();
 	}
 	
 	private void updateMessages(){
@@ -230,12 +231,17 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	private void startRequesting(){
 		// call broadcast
+		this.outstandingRequest = true;
 		this.BroadCastMsg(new MessageImpl(MessageType.REQUEST, this.ts, this.pid));
 		
 	}
 	
-	public void mainLoop(int num_rounds) throws InterruptedException, RemoteException{
+	public void mainLoop(int num_rounds, int num_requests) throws InterruptedException, RemoteException{
 		while(num_rounds-- > 0){
+			Thread.sleep(100);
+			if(!outstandingRequest && this.pid == 0 && num_requests-- > 0){
+				startRequesting();
+			}
 			if(inquired){
 				// do inquire receive msg body
 				if(this.postponed || (this.noGrants == this.requestSet.size())){
@@ -245,14 +251,20 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 							Peer p = this.findPeer(i);
 							p.putMessage(new MessageImpl(MessageType.RELINQUISH, this.ts, this.pid));
 						}
+						this.inquired = false;
+						this.inquirers.clear();
 					}
 				}
 				
 			} else {
 				if(inCriticalState) {
 					// do random amount of work
+					log("In critical section");
 					Thread.sleep(100);
+					log("Done critical section");
 					this.inCriticalState = false;
+					this.inquired = false;
+					this.outstandingRequest = false;
 					// Release bcast
 					this.BroadCastMsg(new MessageImpl(MessageType.RELEASE, this.ts, this.pid));
 				} else {
@@ -261,9 +273,14 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 					while (null != (m = this.queue.pop())){
 						this.ReceiveMsg(m);
 					}
+					handleRequests();
 				}
 			} 
 		}
+	}
+	
+	private void log(String s){
+		System.out.println("[PID: " + this.pid + "] " + s);
 	}
 	
 	public static void main(String[] args) throws InterruptedException, MalformedURLException, RemoteException, NotBoundException{
@@ -272,6 +289,8 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		ClientImpl c = new ClientImpl();
 		
 		server.register(c);
+		Thread.sleep(10000);
+		c.mainLoop(100, 2);
 //		int waitRounds = 20;
 //		while(!c.loopFlag && waitRounds > 0){
 //			Thread.sleep(500);
