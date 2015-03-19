@@ -88,7 +88,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 	}
 
-	public void ReceiveMsg(Message msg) {
+	public void ReceiveMsg(Message msg) throws RemoteException {
 		switch(msg.getMessageType()) {
 			case REQUEST : 
 				if(!this.hasGrantedProcess) {
@@ -157,22 +157,18 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			case RELINQUISH : 
 				this.inquiring = false;
 				this.hasGrantedProcess = false;
-				this.backlog.add(new MessageImpl(MessageType.REQUEST, this.grantData.ts, this.grantData.pid));
-				this.grantData.pid = this.backlog.get(0).getPID();
-				this.grantData.ts = this.backlog.get(0).getTimeStamp();	
+				this.requestBacklog.insert(new MessageImpl(MessageType.REQUEST, this.grantData.ts, this.grantData.pid));
+				this.grantData.pid = this.requestBacklog.peek().getPID();
+				this.grantData.ts = this.requestBacklog.peek().getTimeStamp();	
 				this.hasGrantedProcess = true;
 				Peer p = findPeer(this.grantData.pid);
 				p.putMessage(new MessageImpl(MessageType.GRANT, this.ts, this.pid));
 				break;
 			case RELEASE : 
-				this.hasGrantedProcess = false;
-				this.inquiring = false;
-				if(!this.backlog.isEmpty()) {
-					this.grantData.pid = this.backlog.get(0).getPID();
-					this.grantData.ts = this.backlog.get(0).getTimeStamp();
-					Peer pp = findPeer(this.grantData.pid);
-					pp.putMessage(new MessageImpl(MessageType.GRANT, this.ts, this.pid));
-					this.hasGrantedProcess = true;
+				Release();
+				Message request = null;
+				if(null != (request = this.requestBacklog.peek())) {
+					this.Grant(request);
 				}
 				break;
 			case POSTPONED : 
@@ -182,6 +178,23 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			break;
 		}
 	}
+	
+	private void Grant(Message request) throws RemoteException{
+		int id = request.getPID();
+		Peer p = findPeer(id);
+		p.putMessage(new MessageImpl(MessageType.GRANT, this.ts, this.pid));
+		this.grantData.pid = request.getPID();
+		this.grantData.ts = request.getTimeStamp();
+		this.hasGrantedProcess = true;
+	}
+	
+	private void Release(){
+		this.hasGrantedProcess = false;
+		this.inquiring = false;		
+		this.requestBacklog.Remove(new MessageImpl(MessageType.REQUEST, this.grantData.ts, this.grantData.pid));
+	}
+	
+	
 
 	private Peer findPeer(int id) {
 		Peer p = null;

@@ -54,6 +54,14 @@ public class MessageDeliveryQueue{
 		}
 		return retval;
 	}
+	
+	public void Remove(Message request){
+		for(Message m: backingList){
+			if(request.getTimeStamp().compareTo(m.getTimeStamp()) == 0){
+				backingList.remove(m);
+			}
+		}
+	}
 }
 
 
