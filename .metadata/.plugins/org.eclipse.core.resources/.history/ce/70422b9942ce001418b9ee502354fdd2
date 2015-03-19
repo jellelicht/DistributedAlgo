@@ -228,7 +228,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	private void startRequesting(){
 		// call broadcast
-		this.BroadCastMsg(new MessageImpl(MessageType.REQUEST, this.ts, this.pid));
 		
 	}
 	
@@ -243,6 +242,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 							Peer p = this.findPeer(i);
 							p.putMessage(new MessageImpl(MessageType.RELINQUISH, this.ts, this.pid));
 						}
+						
 					}
 				}
 				

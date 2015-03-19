@@ -26,7 +26,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private Map<Integer, Link> requestSet;
 	private MessageDeliveryQueue requestBacklog;
 	private MessageDeliveryQueue queue;
-	private List<Integer> inquirers;
 	private Boolean inCriticalState;
 	private Boolean inquiring;
 	private Boolean inquired;
@@ -131,7 +130,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				break;
 			case INQUIRE : 
 				this.inquired = true;
-				this.inquirers.add(msg.getPID());
 				break;
 			case RELINQUISH : 
 				this.inquiring = false;
@@ -212,7 +210,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.requestSet = new HashMap<Integer, Link>();
 		this.requestBacklog = new MessageDeliveryQueue();
 		this.queue= new MessageDeliveryQueue();
-		this.inquirers = new ArrayList<Integer>();
 		this.grantData = null;
 		this.noGrants = 0;
 	}
@@ -228,7 +225,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	private void startRequesting(){
 		// call broadcast
-		this.BroadCastMsg(new MessageImpl(MessageType.REQUEST, this.ts, this.pid));
 		
 	}
 	
@@ -239,10 +235,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				if(this.postponed || (this.noGrants == this.requestSet.size())){
 					if(this.postponed) {
 						this.noGrants -= 1;
-						for(Integer i : this.inquirers) {
-							Peer p = this.findPeer(i);
-							p.putMessage(new MessageImpl(MessageType.RELINQUISH, this.ts, this.pid));
-						}
+						
 					}
 				}
 				
