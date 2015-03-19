@@ -15,6 +15,7 @@ import org.da.model.MessageType;
 import org.da.model.Peer;
 import org.da.model.Server;
 import org.da.model.TimeStamp;
+import org.da.util.MessageDeliveryQueue;
 import org.da.util.PeerEntry;
 
 public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements Client {
@@ -23,7 +24,8 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private GrantData grantData;
 	private List<PeerEntry> peers;
 	private Map<Integer, Link> requestSet;
-	private List<Message> backlog;
+	private MessageDeliveryQueue requestBacklog;
+	private MessageDeliveryQueue queue;
 	private Boolean inCriticalState;
 	private Boolean inquiring;
 	private Boolean postponed;
@@ -39,6 +41,14 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	// upon receiving a request message from a process
 	private void grantProccess(int pid) {
 		// Send grantmsg to the process
+	}
+	
+	private Message topMsg(){
+		return null;
+	}
+	
+	private Message pop(){
+		return null;
 	}
 	
 	// Upon receiving a release message from a process
@@ -65,7 +75,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	public void BroadCastMsg() {
 		if(!this.hasGrantedProcess) {
 			Message msg = new MessageImpl(MessageType.REQUEST, this.ts, this.pid);
-			
+			this.ts = this.ts.inc();
 			for (PeerEntry pe : this.peers) {
 				try {
 					pe.p.putMessage(msg);
@@ -77,7 +87,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 	}
 
-	public void ReceiveMsg(Message msg) throws RemoteException {
+	public void ReceiveMsg(Message msg) {
 		switch(msg.getMessageType()) {
 			case REQUEST : 
 				if(!this.hasGrantedProcess) {
@@ -90,21 +100,16 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 					l.addMessage(currentGrant);				
 					this.hasGrantedProcess = true;
 				} else {
-					this.backlog.add(msg);
-					Message head = this.backlog.get(0);
+					this.requestBacklog.insert(msg);
+					Message head = this.requestBacklog.peek();
 					
 					if (( this.grantData.ts.compareTo(msg.getTimeStamp()) < 0 ) ||
 							head.getTimeStamp().compareTo(msg.getTimeStamp()) < 0) {
-						int id = msg.getPID();
-						Peer p = findPeer(id);
-						
-						p.putMessage(new MessageImpl(MessageType.POSTPONED, this.ts, this.pid));
+						sendMsg(MessageType.POSTPONED, msg.getPID());
 					} else  {
 						if (!this.inquiring) {
 							this.inquiring = true;
-							int id = this.grantData.pid;
-							Peer p = findPeer(id);
-							p.putMessage(new MessageImpl(MessageType.INQUIRE, this.ts, this.pid));
+							sendMsg(MessageType.INQUIRE, this.grantData.pid);
 						}
 					}
 				}	
@@ -143,6 +148,16 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		return p;
 	}
 	
+	private void sendMsg(MessageType t, int peerId){
+		this.ts = this.ts.inc();
+		try {
+			findPeer(peerId).putMessage(new MessageImpl(t, this.ts, this.pid));
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 	@Override
 	public void activate(List<PeerEntry> peers, Integer ownId)
 			throws RemoteException {
@@ -154,9 +169,19 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.pid = ownId;
 		this.ts = new TimeStamp(0, this.pid);
 		this.requestSet = new HashMap<Integer, Link>();
-		this.backlog = new ArrayList<Message>();
+		this.requestBacklog = new MessageDeliveryQueue();
+		this.queue= new MessageDeliveryQueue();
 		this.grantData = null;
 		this.noGrants = 0;
+	}
+	
+	private void updateMessages(){
+		for (Link l: this.requestSet.values()){
+			Message m;
+			while(null != (m = l.popMessage())){
+				this.queue.insert(m);
+			}
+		}
 	}
 	
 	public static void main(String[] args) throws InterruptedException, MalformedURLException, RemoteException, NotBoundException{
