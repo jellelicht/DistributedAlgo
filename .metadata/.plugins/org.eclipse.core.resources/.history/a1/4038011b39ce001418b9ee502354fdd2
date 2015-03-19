@@ -26,7 +26,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private List<Message> backlog;
 	private Boolean inCriticalState;
 	private Boolean inquiring;
-	private Boolean inquired;
 	private Boolean postponed;
 	private Boolean hasGrantedProcess;
 	private Integer pid;
@@ -126,52 +125,13 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				}
 				break;
 			case INQUIRE : 
-				// upon receipt of (inquire;j) do
-					// wait until ((postponed) or (no grants = |R|))
-					// if (postponed) then
-							// no grants <- no grants-1
-							// send(relinquish) to P j
 				
-				if(!this.postponed || (this.noGrants == this.requestSet.size())){
-					this.inquired = true;
-					break;
-				} else {
-					if(this.postponed) {
-						this.noGrants += 1;
-						for (PeerEntry pe : this.peers) {
-							try {
-								pe.p.putMessage(new MessageImpl(MessageType.RELINQUISH, this.ts, this.pid));
-							} catch (RemoteException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-						}
-					}
-				}
-				break;
-			case RELINQUISH : 
-				this.inquiring = false;
-				this.hasGrantedProcess = false;
-				this.backlog.add(new MessageImpl(MessageType.REQUEST, this.grantData.ts, this.grantData.pid));
-				this.grantData.pid = this.backlog.get(0).getPID();
-				this.grantData.ts = this.backlog.get(0).getTimeStamp();	
-				this.hasGrantedProcess = true;
-				Peer p = findPeer(this.grantData.pid);
-				p.putMessage(new MessageImpl(MessageType.GRANT, this.ts, this.pid));
-				break;
-			case RELEASE : 
-				this.hasGrantedProcess = false;
-				this.inquiring = false;
-				if(!this.backlog.isEmpty()) {
-					this.grantData.pid = this.backlog.get(0).getPID();
-					this.grantData.ts = this.backlog.get(0).getTimeStamp();
-					Peer pp = findPeer(this.grantData.pid);
-					pp.putMessage(new MessageImpl(MessageType.GRANT, this.ts, this.pid));
-					this.hasGrantedProcess = true;
-				}
 				break;
 			case POSTPONED : 
-				this.postponed = true;
+				break;
+			case RELEASE : 
+				break;
+			case RELINQUISH : 
 				break;
 		default:
 			break;
@@ -200,7 +160,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.inCriticalState = false;
 		this.hasGrantedProcess = false;
 		this.inquiring = false;
-		this.inquired = false;
 		this.postponed = false;
 		this.pid = ownId;
 		this.ts = new TimeStamp(0, this.pid);
