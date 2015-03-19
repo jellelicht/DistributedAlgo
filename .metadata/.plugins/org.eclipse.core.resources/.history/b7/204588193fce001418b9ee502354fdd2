@@ -62,6 +62,10 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.inCriticalState = true;
 	}
 	
+	private boolean isAllowdToEnterCS() {
+		return false;
+	}
+	
 	@Override
 	public void putMessage(Message msg) throws RemoteException{
 		int id = msg.getPID();
