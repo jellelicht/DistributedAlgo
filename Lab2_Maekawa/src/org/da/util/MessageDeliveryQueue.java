@@ -14,10 +14,12 @@ import org.da.model.Message;
 // Not thread safe!
 public class MessageDeliveryQueue{ 	
 	private final List<Message> backingList;
+	private final String name;
 	
 	
-	public MessageDeliveryQueue(){
+	public MessageDeliveryQueue(String name){
 		 backingList = new ArrayList<Message>();
+		 this.name = name;
 	}
 	
 	public void insert(Message m){
@@ -31,11 +33,11 @@ public class MessageDeliveryQueue{
 			if(newMessage.compareTo(placeholder) == -1){
 				break;
 			} else if (newMessage.compareTo(placeholder) == 0){
-				throw new RuntimeException("Double message insertion");
+				throw new RuntimeException(name + ": Double message insertion");
 			}
 		}
 		backingList.add(i, m);
-		System.out.println("Added to queue: " + m.toString() + "(pos = " + i + ")");
+		System.out.println(name + ": Added to queue: " + m.toString() + "(pos = " + i + ")");
 	}
 	
 	// only pops head of queue if received_acks == num_acks
@@ -59,6 +61,7 @@ public class MessageDeliveryQueue{
 		for(Message m: backingList){
 			if(request.getTimeStamp().compareTo(m.getTimeStamp()) == 0){
 				backingList.remove(m);
+				break;
 			}
 		}
 	}

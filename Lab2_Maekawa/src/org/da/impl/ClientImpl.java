@@ -81,6 +81,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	// msg should be either REQUEST OR RELEASE
 	public void BroadCastMsg(Message msg) {
+		log("Broadcasting message "+ msg.toString());
 		this.ts = this.ts.inc();
 		for (PeerEntry pe : this.peers) {
 			try {
@@ -161,9 +162,8 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	private void Grant(Message request) throws RemoteException{
 		int id = request.getPID();
-		Peer p = findPeer(id);
-		p.putMessage(new MessageImpl(MessageType.GRANT, this.ts, this.pid));
-		this.grantData.pid = request.getPID();
+		sendMsg(MessageType.GRANT, id);
+		this.grantData.pid = id;
 		this.grantData.ts = request.getTimeStamp();
 		this.hasGrantedProcess = true;
 	}
@@ -190,6 +190,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	private void sendMsg(MessageType t, int peerId){
+		log("Sending MessageType " + t.toString() + " to Peer "+ peerId);
 		this.ts = this.ts.inc();
 		try {
 			findPeer(peerId).putMessage(new MessageImpl(t, this.ts, this.pid));
@@ -211,10 +212,10 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.pid = ownId;
 		this.ts = new TimeStamp(0, this.pid);
 		this.requestSet = new HashMap<Integer, Link>();
-		this.requestBacklog = new MessageDeliveryQueue();
-		this.queue= new MessageDeliveryQueue();
+		this.requestBacklog = new MessageDeliveryQueue("requestBacklog");
+		this.queue= new MessageDeliveryQueue("queue");
 		this.inquirers = new ArrayList<Integer>();
-		this.grantData = null;
+		this.grantData = new GrantData();
 		this.noGrants = 0;
 		this.outstandingRequest = false;
 		this.setupLinks();
@@ -248,8 +249,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 					if(this.postponed) {
 						this.noGrants -= 1;
 						for(Integer i : this.inquirers) {
-							Peer p = this.findPeer(i);
-							p.putMessage(new MessageImpl(MessageType.RELINQUISH, this.ts, this.pid));
+							sendMsg(MessageType.RELINQUISH, i);
 						}
 						this.inquired = false;
 						this.inquirers.clear();
