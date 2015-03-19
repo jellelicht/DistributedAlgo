@@ -62,7 +62,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	// Enter critical state
 	private void enterCriticalState(){
+		log("Activate critical state");
 		this.inCriticalState = true;
+		this.noGrants = 0;
 	}
 	
 	@Override
@@ -101,6 +103,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 
 	public void ReceiveMsg(Message msg) throws RemoteException {
 		this.ts = this.ts.sync(msg.getTimeStamp());
+		log("ReceiveMsg: " + msg.toString());
 		switch(msg.getMessageType()) {
 			case REQUEST :
 				this.requestBacklog.insert(msg);
@@ -112,10 +115,12 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				}	
 				break;
 			case GRANT : 
+				log("Received grant, current noGrants:" + noGrants);
 				this.noGrants += 1;
 				if(this.noGrants == this.requestSet.size()) {
+					log("Enough grants to enter CS");
 					this.postponed = false;
-					this.inCriticalState = true;
+					enterCriticalState();
 				}
 				break;
 			case INQUIRE :
@@ -222,6 +227,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	private void updateMessages(){
+		log("updateMessages");
 		for (Link l: this.requestSet.values()){
 			Message m;
 			while(null != (m = l.popMessage())){
@@ -232,6 +238,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	private void startRequesting(){
 		// call broadcast
+		log("startRequesting");
 		this.outstandingRequest = true;
 		this.BroadCastMsg(new MessageImpl(MessageType.REQUEST, this.ts, this.pid));
 		
@@ -239,6 +246,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	public void mainLoop(int num_rounds, int num_requests) throws InterruptedException, RemoteException{
 		while(num_rounds-- > 0){
+			log("Round " + num_rounds);
 			Thread.sleep(100);
 			if(!outstandingRequest && this.pid == 0 && num_requests-- > 0){
 				startRequesting();
@@ -247,9 +255,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				// do inquire receive msg body
 				if(this.postponed || (this.noGrants == this.requestSet.size())){
 					if(this.postponed) {
-						this.noGrants -= 1;
 						for(Integer i : this.inquirers) {
 							sendMsg(MessageType.RELINQUISH, i);
+							this.noGrants -= 1;
 						}
 						this.inquired = false;
 						this.inquirers.clear();
