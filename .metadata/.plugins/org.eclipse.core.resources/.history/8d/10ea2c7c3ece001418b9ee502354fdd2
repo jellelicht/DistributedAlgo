@@ -62,6 +62,10 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.inCriticalState = true;
 	}
 	
+	private boolean isAllowdToEnterCS() {
+		return false;
+	}
+	
 	@Override
 	public void putMessage(Message msg) throws RemoteException{
 		int id = msg.getPID();
@@ -69,21 +73,19 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		l.addMessage(msg);
 	}
 	
-	// msg should be either REQUEST OR RELEASE
-	public void BroadCastMsg(Message msg) {
-		this.ts = this.ts.inc();
-		for (PeerEntry pe : this.peers) {
-			try {
-				pe.p.putMessage(msg);
-			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+	public void BroadCastMsg() {
+		if(!this.hasGrantedProcess) {
+			Message msg = new MessageImpl(MessageType.REQUEST, this.ts, this.pid);
+			this.ts = this.ts.inc();
+			for (PeerEntry pe : this.peers) {
+				try {
+					pe.p.putMessage(msg);
+				} catch (RemoteException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
-//		if(!this.hasGrantedProcess) {
-//			Message msg = new MessageImpl(MessageType.REQUEST, this.ts, this.pid);
-//
-//		}
 	}
 
 	public void ReceiveMsg(Message msg) throws RemoteException {
@@ -192,6 +194,8 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.requestBacklog.Remove(new MessageImpl(MessageType.REQUEST, this.grantData.ts, this.grantData.pid));
 	}
 	
+	
+
 	private Peer findPeer(int id) {
 		Peer p = null;
 		for (PeerEntry pe : this.peers) {
@@ -241,31 +245,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			while(null != (m = l.popMessage())){
 				this.queue.insert(m);
 			}
-		}
-	}
-	
-	private void startRequesting(){
-		
-	}
-	
-	public void mainLoop(int num_rounds) throws InterruptedException, RemoteException{
-		while(num_rounds-- > 0){
-			if(inquired){
-				// do inquire receive msg body
-			} else {
-				if(inCriticalState) {
-					// do random amount of work
-					Thread.sleep(100);
-					this.inCriticalState = false;
-					// Release bcast
-				} else {
-					updateMessages();
-					Message m = null;
-					while (null != (m = this.queue.pop())){
-						this.ReceiveMsg(m);
-					}
-				}
-			} 
 		}
 	}
 	
