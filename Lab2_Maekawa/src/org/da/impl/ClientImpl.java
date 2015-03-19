@@ -127,11 +127,13 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				this.requestBacklog.insert(msg);
 				if(this.hasGrantedProcess) {
 					Message request = this.requestBacklog.peek();
-					if(msg.getTimeStamp().compareTo(request.getTimeStamp()) == -1 &&
-							grantData.ts.compareTo(msg.getTimeStamp()) == -1){
+					
+					if(msg.getTimeStamp().compareTo(request.getTimeStamp()) == 1){
 						sendMsg(MessageType.POSTPONED, msg.getPID());
 					}
-				}	
+				} else {
+					Grant(msg); // For receiving multiple requests in one round
+				}
 				break;
 			case GRANT : 
 				log("Received grant, old noGrants:" + noGrants);
