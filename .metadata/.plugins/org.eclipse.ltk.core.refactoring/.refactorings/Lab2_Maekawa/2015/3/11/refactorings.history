@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<session version="1.0">
-<refactoring comment="Extract method &apos;private Peer findPeer(int id)&apos; from &apos;org.da.impl.ClientImpl.ReceiveMsg()&apos; to &apos;org.da.impl.ClientImpl&apos;&#x0D;&#x0A;- Original project: &apos;Lab2_Maekawa&apos;&#x0D;&#x0A;- Method name: &apos;findPeer&apos;&#x0D;&#x0A;- Destination type: &apos;org.da.impl.ClientImpl&apos;&#x0D;&#x0A;- Declared visibility: &apos;private&apos;" comments="false" description="Extract method &apos;findPeer&apos;" destination="0" exceptions="false" flags="786434" id="org.eclipse.jdt.ui.extract.method" input="/src&lt;org.da.impl{ClientImpl.java" name="findPeer" replace="false" selection="2661 123" stamp="1426175159531" version="1.0" visibility="2"/>
-</session>
