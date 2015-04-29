@@ -11,6 +11,7 @@ import util.MessageDeliveryQueue;
 import util.PeerEntry;
 import model.Client;
 import model.Message;
+import model.MessageType;
 import model.Peer;
 import model.Server;
 
@@ -35,32 +36,33 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			this.rndGen = new Random();
 		}
 		
-		public void handleMessage(Message m){
+		public void handleMessage(Message m) throws RemoteException{
 			if(killed == false && m.getPId() == c.id){
 				this.level++;
 				this.untraversed.remove(c.peers.get(m.getPId()));
 			} else {
 				if (m.getPId() < c.id) {
 					// Should not happen (should happen in ordinary message handling?)
-				} else {
+				} else { // MessageType should be RECAPTURED
 					//Send killed to c.peers.get(m.getPId()).p.putMessage(...)
+					c.peers.get(m.getPId()).p.putMessage(killedMessage(m));
 					this.killed = true;
 				}
 			}
 		}
 		
-		public void attemptCapture(){
+		public void attemptCapture() throws RemoteException{
 			int index = rndGen.nextInt(untraversed.size());
 			Peer p = untraversed.get(index);
-			// Send CAPTURE to p.putMessage(...)
+			p.putMessage(captureMessage());
 		}
 		
 		private Message killedMessage(Message recap){
-			return null;
+			return new MessageImpl(MessageType.KILLED, recap.getLevel(), recap.getPId());
 		}
 		
 		private Message captureMessage(){
-			return null;
+			return new MessageImpl(MessageType.CAPTURE, level, c.id);
 		}
 		
 		public boolean isAlive(){
@@ -70,7 +72,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			return this.killed == false && this.untraversed.isEmpty();
 		}
 	}
-	
+	private CandidateData cd;
 	private Integer captorLevel = -1;
 	private Integer captorId;
 	
@@ -97,14 +99,42 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		// TODO Auto-generated method stub
 		this.id = ownId;
 		this.peers = peers;
+		// HARDCODED:
+		if(this.id == 1){
+			this.isCandidate = true;
+			this.cd = new CandidateData(this);
+		}
 	}
 	
 	// Algorithm implementation
 	public void mainLoop() {
 		// Pull messages from loop
-		// 
+		Message m = mq.pop();
+		if(m != null){
+			try {
+				handleMessage(m);
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		
 		
+	}
+	
+	private void handleMessage(Message m) throws RemoteException{
+		switch(m.getMessageType()){
+		case CAPTURE:
+			break;
+		case RECAPTURED:
+			cd.handleMessage(m);
+			break;
+		case CAPTURED:
+			cd.handleMessage(m);
+			break;
+		case KILLED:
+			break;
+		}
 	}
 	
 	public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException{
