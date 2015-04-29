@@ -9,11 +9,13 @@ public class MessageImpl implements Message, Comparable<Message> {
 	private MessageType msgType;
 	private int level;
 	private int pid;
+	private int originId;
 	
-	public MessageImpl(MessageType msgType, int level, int pid) {
+	public MessageImpl(MessageType msgType, int level, int pid, int originId) {
 		this.msgType = msgType;
 		this.level = level;
 		this.pid = pid;
+		this.originId = originId;
 	}
 	
 	@Override
@@ -24,6 +26,11 @@ public class MessageImpl implements Message, Comparable<Message> {
 	@Override
 	public Integer getPId() {
 		return this.pid;
+	}
+	
+	@Override
+	public Integer getOriginId() {
+		return this.originId;
 	}
 	
 	@Override
