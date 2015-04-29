@@ -21,6 +21,11 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private List<PeerEntry> peers;
 	private MessageDeliveryQueue mq;
 	
+	private class PotentialOwnerData {
+		public int level;
+		public int id;
+	}
+	
 	private class CandidateData {
 		private boolean killed;
 		private List<Peer> untraversed;
@@ -58,11 +63,11 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 		
 		private Message killedMessage(Message recap){
-			return new MessageImpl(MessageType.KILLED, recap.getLevel(), recap.getPId());
+			return new MessageImpl(MessageType.KILLED, recap.getLevel(), recap.getPId(), c.id);
 		}
 		
 		private Message captureMessage(){
-			return new MessageImpl(MessageType.CAPTURE, level, c.id);
+			return new MessageImpl(MessageType.CAPTURE, level, c.id, c.id);
 		}
 		
 		public boolean isAlive(){
@@ -73,8 +78,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 	}
 	private CandidateData cd;
-	private Integer captorLevel = -1;
-	private Integer captorId;
+	private Integer potentialOwner;
+	private PotentialOwnerData pod;
+	private Integer owner = -1;
 	
 	private boolean isCandidate = false;
 	
@@ -89,16 +95,17 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 
 	@Override
 	public void putMessage(Message msg) throws RemoteException {
-		// TODO Auto-generated method stub
 		mq.insert(msg);
 	}
 
 	@Override
 	public void activate(List<PeerEntry> peers, Integer ownId)
 			throws RemoteException {
-		// TODO Auto-generated method stub
 		this.id = ownId;
 		this.peers = peers;
+		this.pod = new PotentialOwnerData();
+		this.pod.id = -1;
+		this.pod.level = -1;
 		// HARDCODED:
 		if(this.id == 1){
 			this.isCandidate = true;
@@ -114,17 +121,24 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			try {
 				handleMessage(m);
 			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-		
-		
 	}
 	
 	private void handleMessage(Message m) throws RemoteException{
 		switch(m.getMessageType()){
 		case CAPTURE:
+			if(m.getPId() > this.pod.id) {
+				this.potentialOwner = m.getPId();
+				this.pod.id = m.getPId();
+				this.pod.level = m.getLevel();
+				if (this.owner == -1){
+					this.promoteOwner(m);
+				} else {
+					this.peers.get(this.owner).p.putMessage(new MessageImpl(MessageType.RECAPTURED, this.pod.level, this.pod.id, this.id));
+				}
+			}
 			break;
 		case RECAPTURED:
 			cd.handleMessage(m);
@@ -133,8 +147,14 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			cd.handleMessage(m);
 			break;
 		case KILLED:
+			this.promoteOwner(m);
 			break;
 		}
+	}
+	
+	private void promoteOwner(Message msg) throws RemoteException{
+		this.owner = this.pod.id;
+		this.peers.get(this.owner).p.putMessage(new MessageImpl(MessageType.CAPTURED, this.pod.level, this.pod.id, this.id));
 	}
 	
 	public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException{
