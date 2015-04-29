@@ -35,7 +35,10 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		
 		public CandidateData(ClientImpl c){
 			this.killed = false;
-			this.untraversed = new ArrayList(peers);// Does this copy or mutate?
+			this.untraversed = new ArrayList<Peer>();// Does this copy or mutate?
+			for (PeerEntry pe : c.peers){
+				untraversed.add(pe.p);
+			}
 			this.level = 0;
 			this.c = c;
 			this.rndGen = new Random();
