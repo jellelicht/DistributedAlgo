@@ -77,7 +77,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private Integer captorId;
 	
 	private boolean isCandidate = false;
-	
+	private int loopCounter = 1000;
 	
 	private static final long serialVersionUID = 1L;
 	
@@ -109,6 +109,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	// Algorithm implementation
 	public void mainLoop() {
 		// Pull messages from loop
+		this.loopCounter--;
 		Message m = mq.pop();
 		if(m != null){
 			try {
@@ -118,7 +119,22 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				e.printStackTrace();
 			}
 		}
-		
+		if (isCandidate){
+			if(cd.isElected()){
+				System.out.println("I was elected!: Pid: " + this.id);
+				loopCounter = 0;
+			}
+			else if (cd.isAlive()){
+				try {
+					cd.attemptCapture();
+				} catch (RemoteException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			} else {
+				 System.out.println("Oh noes, dead candidate");
+			}
+		}
 		
 	}
 	
@@ -133,10 +149,13 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			cd.handleMessage(m);
 			break;
 		case KILLED:
-			break;
+			// Check: saved (level,id) == message (level, id)
+			// owner = potential owner // update owner
+			Peer p = peers.get(m.getPId()).p;
+			p.putMessage(new MessageImpl(MessageType.CAPTURED, m.getLevel(), m.getPId(), this.id));
 		}
 	}
-	
+		
 	public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException{
 		// setup registry
 		Server server = (Server) java.rmi.Naming.lookup("rmi://localhost:1089/register");				
