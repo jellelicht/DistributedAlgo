@@ -34,6 +34,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	// Algorithm implementation
 	public void mainLoop() {
 		
+		
 	}
 	
 	public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException{
