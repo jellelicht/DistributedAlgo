@@ -48,4 +48,9 @@ public class MessageImpl implements Message, Comparable<Message> {
 			return 0;
 		}
 	}
+	
+	@Override
+	public String toString(){
+		return "MessageImpl["+msgType.name()+"]: (Origin: " + originId + ", pid: " + pid + ", level: " + level + ")";
+	}
 }

@@ -83,7 +83,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private Integer owner = -1;
 	
 	private boolean isCandidate = false;
-	
+	private int loopCounter = 1000;
 	
 	private static final long serialVersionUID = 1L;
 	
@@ -116,12 +116,29 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	// Algorithm implementation
 	public void mainLoop() {
 		// Pull messages from loop
+		this.loopCounter--;
 		Message m = mq.pop();
 		if(m != null){
 			try {
 				handleMessage(m);
 			} catch (RemoteException e) {
 				e.printStackTrace();
+			}
+		}
+		if (isCandidate){
+			if(cd.isElected()){
+				System.out.println("I was elected!: Pid: " + this.id);
+				loopCounter = 0;
+			}
+			else if (cd.isAlive()){
+				try {
+					cd.attemptCapture();
+				} catch (RemoteException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			} else {
+				 System.out.println("Oh noes, dead candidate");
 			}
 		}
 	}
