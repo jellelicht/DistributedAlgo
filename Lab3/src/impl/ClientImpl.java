@@ -5,6 +5,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -31,18 +32,18 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	private class CandidateData {
 		private boolean killed;
-		private List<Peer> untraversed;
+		private Map<Integer, Peer> untraversed;
 		private int level;
 		private ClientImpl c;
 		private Random rndGen;
 		
 		public CandidateData(ClientImpl c){
 			this.killed = false;
-			this.untraversed = new ArrayList<Peer>();// Does this copy or mutate?
+			this.untraversed = new HashMap<Integer, Peer>();// Does this copy or mutate?
 			for (PeerEntry pe : c.peers){
-				//if(pe.peerId != c.id ){
-					untraversed.add(pe.p);
-				//}
+				if(pe.peerId != c.id ){
+					untraversed.put(pe.peerId, pe.p);
+				}
 			}
 			this.level = 0;
 			this.c = c;
@@ -50,11 +51,11 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 		
 		public void handleMessage(Message m) throws RemoteException{
-			System.out.println("m.get pid: " + m.getPId() + " vs c.id: " + c.id);
-			if(killed == false && m.getPId() == c.id){
-				System.out.println("I captured someone :D");
+			System.out.println(Integer.compare(m.getPId(), c.id) == 0);
+			if(killed == false && (Integer.compare(m.getPId(), c.id) == 0)){
 				this.level++;
-				this.untraversed.remove(c.peers.get(m.getPId()));
+				System.out.println("I captured someone :D " + this.level );
+				this.untraversed.remove(m.getOriginId());
 			} else {
 				
 				if (m.getPId() < c.id) {
@@ -70,11 +71,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		
 		public void attemptCapture() throws RemoteException{
 			int index = rndGen.nextInt(untraversed.size());
-			if(index == c.id){
-				return;
-			}
-			Peer p = untraversed.get(index);
 			
+			Peer p = (Peer) untraversed.values().toArray()[index];
+
 			p.putMessage(captureMessage());
 
 			//capMessageSent.put(p,true);
@@ -93,6 +92,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			return !this.killed;
 		}
 		public boolean isElected(){
+			System.out.println("Size: " + untraversed.size());
 			return this.killed == false && this.untraversed.size() == 1;
 		}
 	}
