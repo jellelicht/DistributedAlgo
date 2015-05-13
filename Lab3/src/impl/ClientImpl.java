@@ -40,9 +40,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			this.killed = false;
 			this.untraversed = new ArrayList<Peer>();// Does this copy or mutate?
 			for (PeerEntry pe : c.peers){
-				if(pe.peerId != c.id ){
+				//if(pe.peerId != c.id ){
 					untraversed.add(pe.p);
-				}
+				//}
 			}
 			this.level = 0;
 			this.c = c;
@@ -50,13 +50,17 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 		
 		public void handleMessage(Message m) throws RemoteException{
+			System.out.println("m.get pid: " + m.getPId() + " vs c.id: " + c.id);
 			if(killed == false && m.getPId() == c.id){
+				System.out.println("I captured someone :D");
 				this.level++;
 				this.untraversed.remove(c.peers.get(m.getPId()));
 			} else {
+				
 				if (m.getPId() < c.id) {
-					// Should not happen (should happen in ordinary message handling?)
+					System.out.println("SHOULD NOT HAPPEN");// Should not happen (should happen in ordinary message handling?)
 				} else { // MessageType should be RECAPTURED
+					System.out.println("This should say RECAPTURED: " + m.getMessageType().toString());
 					//Send killed to c.peers.get(m.getPId()).p.putMessage(...)
 					c.peers.get(m.getPId()).p.putMessage(killedMessage(m));
 					this.killed = true;
@@ -66,7 +70,11 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		
 		public void attemptCapture() throws RemoteException{
 			int index = rndGen.nextInt(untraversed.size());
+			if(index == c.id){
+				return;
+			}
 			Peer p = untraversed.get(index);
+			
 			p.putMessage(captureMessage());
 
 			//capMessageSent.put(p,true);
@@ -85,7 +93,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			return !this.killed;
 		}
 		public boolean isElected(){
-			return this.killed == false && this.untraversed.isEmpty();
+			return this.killed == false && this.untraversed.size() == 1;
 		}
 	}
 	private CandidateData cd;
@@ -194,6 +202,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	private void promoteOwner(Message msg) throws RemoteException{
+		System.out.println("Changing owner from " + owner + " to " + this.pod.id);
 		this.owner = this.pod.id;
 		
 		this.peers.get(this.owner).p.putMessage(new MessageImpl(MessageType.CAPTURED, this.pod.level, this.pod.id, this.id));
