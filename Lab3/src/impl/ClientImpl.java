@@ -20,6 +20,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private Integer id;
 	private List<PeerEntry> peers;
 	private MessageDeliveryQueue mq;
+	private boolean loopFlag = false;
 	
 	private class PotentialOwnerData {
 		public int level;
@@ -93,6 +94,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	protected ClientImpl() throws RemoteException {
 		super();
+		this.mq = new MessageDeliveryQueue();
 	}
 	
 
@@ -114,11 +116,13 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			this.isCandidate = true;
 			this.cd = new CandidateData(this);
 		}
+		this.loopFlag = true;
 	}
 	
 	// Algorithm implementation
 	public void mainLoop() {
 		// Pull messages from loop
+		System.out.println("Loop nr: " + this.loopCounter);
 		this.loopCounter--;
 		Message m = mq.pop();
 		if(m != null){
@@ -143,6 +147,12 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			} else {
 				 System.out.println("Oh noes, dead candidate");
 			}
+		}
+		
+		if(this.loopCounter > 0) {
+			this.mainLoop();
+		} else {
+			return;
 		}
 	}
 	
@@ -177,9 +187,20 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.peers.get(this.owner).p.putMessage(new MessageImpl(MessageType.CAPTURED, this.pod.level, this.pod.id, this.id));
 	}
 	
-	public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException{
+	public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException, InterruptedException{
 		// setup registry
 		Server server = (Server) java.rmi.Naming.lookup("rmi://localhost:1089/register");				
 		ClientImpl c = new ClientImpl();
+		
+		server.register(c); 
+		Thread.sleep(10000);
+		
+		int waitRounds = 20;
+		while(!c.loopFlag && waitRounds > 0){
+			Thread.sleep(500);
+			waitRounds--;
+		}
+			Thread.sleep(2000); // settling time for other processes
+			c.mainLoop();
 	}
 }
