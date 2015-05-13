@@ -4,7 +4,9 @@ import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import util.MessageDeliveryQueue;
@@ -38,7 +40,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			this.killed = false;
 			this.untraversed = new ArrayList<Peer>();// Does this copy or mutate?
 			for (PeerEntry pe : c.peers){
-				untraversed.add(pe.p);
+				if(pe.peerId != c.id ){
+					untraversed.add(pe.p);
+				}
 			}
 			this.level = 0;
 			this.c = c;
@@ -64,6 +68,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			int index = rndGen.nextInt(untraversed.size());
 			Peer p = untraversed.get(index);
 			p.putMessage(captureMessage());
+
+			//capMessageSent.put(p,true);
+			//untraversed.remove(index);
 		}
 		
 		private Message killedMessage(Message recap){
@@ -87,7 +94,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private Integer owner = -1;
 	
 	private boolean isCandidate = false;
-	private int loopCounter = 1000;
+	private int loopCounter = 100;
 	
 	private static final long serialVersionUID = 1L;
 	
@@ -112,7 +119,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.pod.id = -1;
 		this.pod.level = -1;
 		// HARDCODED:
-		if(this.id == 1){
+		if(this.id == 0){
 			this.isCandidate = true;
 			this.cd = new CandidateData(this);
 		}
@@ -120,12 +127,13 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	// Algorithm implementation
-	public void mainLoop() {
+	public void mainLoop() throws InterruptedException {
 		// Pull messages from loop
 		System.out.println("Loop nr: " + this.loopCounter);
 		this.loopCounter--;
 		Message m = mq.pop();
 		if(m != null){
+			System.out.println("handling message " + m.getMessageType().toString());
 			try {
 				handleMessage(m);
 			} catch (RemoteException e) {
@@ -133,12 +141,14 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			}
 		}
 		if (isCandidate){
+			System.out.println("Candidate stuff:");
 			if(cd.isElected()){
 				System.out.println("I was elected!: Pid: " + this.id);
 				loopCounter = 0;
 			}
 			else if (cd.isAlive()){
 				try {
+					System.out.println("attempt capture");
 					cd.attemptCapture();
 				} catch (RemoteException e) {
 					// TODO Auto-generated catch block
@@ -150,6 +160,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 		
 		if(this.loopCounter > 0) {
+			Thread.sleep(1000);
 			this.mainLoop();
 		} else {
 			return;
@@ -184,6 +195,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	
 	private void promoteOwner(Message msg) throws RemoteException{
 		this.owner = this.pod.id;
+		
 		this.peers.get(this.owner).p.putMessage(new MessageImpl(MessageType.CAPTURED, this.pod.level, this.pod.id, this.id));
 	}
 	
