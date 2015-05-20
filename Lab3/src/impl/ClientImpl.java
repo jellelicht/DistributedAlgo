@@ -52,22 +52,24 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 		
 		private boolean equalityCheck(Message m){
-			return (m.getPId() < c.id) && (m.getLevel() < this.level);
+			return (m.getPId() <= c.id) && (m.getLevel() < this.level);
 		}
 		
 		public void handleMessage(Message m) throws RemoteException{
 			if(killed == false && (Integer.compare(m.getPId(), c.id) == 0)){
 				this.level++;
-				System.out.println("[CANDIDATE] captured " + m.getOriginId() );
-				this.untraversed.remove(m.getOriginId());
+				System.out.println("[CANDIDATE] captured " + m.getLink() );
+				this.untraversed.remove(m.getLink());
 				this.capturing = -1;
 			} else {
 				if ( this.equalityCheck(m) ) {
 					System.out.println("[YOLO] SHOULD NOT HAPPEN");// Should not happen (should happen in ordinary message handling?)
 				} else { // MessageType should be RECAPTURED
 					//Send killed to c.peers.get(m.getPId()).p.putMessage(...)
-					System.out.println("[CANDIDATE] Got killed");
-					c.peers.get(m.getPId()).p.putMessage(killedMessage(m));
+					System.out.println("[CANDIDATE] Got killed to peer " + m.getPId() + " (received : " + m.getMessageType().toString());
+					if(m.getMessageType() == MessageType.RECAPTURED){
+						c.peers.get(m.getPId()).p.putMessage(killedMessage(m));
+					}
 					this.killed = true;
 				}
 			}
@@ -186,7 +188,8 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private void handleMessage(Message m) throws RemoteException{
 		switch(m.getMessageType()){
 		case CAPTURE:
-			if((m.getPId() > this.pod.id) && (m.getLevel() > this.pod.level)) {
+			System.out.println("[CAPTURE] received capture from " + m.getPId());
+			if((m.getPId() >= this.pod.id) && (m.getLevel() > this.pod.level)) {
 				this.potentialOwner = m.getPId();
 				this.pod.id = m.getPId();
 				this.pod.level = m.getLevel();
@@ -197,7 +200,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				}
 				
 			} else {
-				System.out.println("[CAPTURE] ignoring capture from " + m.getPId() +  " while this.pod.id = " + this.pod.id);
+				System.out.println("[CAPTURE] ignoring capture from " + m.getPId() + "," + m.getLevel() +  " while this.pod = " + this.pod.id + "," + this.pod.level);
 			}
 			break;
 		case RECAPTURED:
@@ -219,8 +222,11 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 		System.out.println("[OWNER] Changing owner from " + owner + " to " + this.pod.id);
 		this.owner = this.pod.id;
-		
-		this.peers.get(this.owner).p.putMessage(new MessageImpl(MessageType.CAPTURED, this.pod.level, this.pod.id, this.id));
+		if(this.owner == this.id){
+			System.out.println("[OWNER] Changing from self, no recapture");			
+		} else {
+			this.peers.get(this.owner).p.putMessage(new MessageImpl(MessageType.CAPTURED, this.pod.level, this.pod.id, this.id));
+		}
 	}
 	
 	public static void main(String[] args) throws RemoteException, MalformedURLException, NotBoundException, InterruptedException{

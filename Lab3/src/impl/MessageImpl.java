@@ -29,7 +29,7 @@ public class MessageImpl implements Message, Comparable<Message> {
 	}
 	
 	@Override
-	public Integer getOriginId() {
+	public Integer getLink() {
 		return this.originId;
 	}
 	
