@@ -133,10 +133,10 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.pod.id = -1;
 		this.pod.level = -1;
 		// HARDCODED:
-//		if(this.id == 0){
+		if(this.id == 0){
 			this.isCandidate = true;
 			this.cd = new CandidateData(this);
-//		}
+		}
 		this.loopFlag = true;
 	}
 	
