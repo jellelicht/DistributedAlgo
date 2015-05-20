@@ -6,6 +6,7 @@ import java.rmi.registry.Registry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import util.PeerEntry;
 import model.Client;
@@ -15,10 +16,12 @@ public class ServerImpl extends java.rmi.server.UnicastRemoteObject implements S
 	
 	private static final long serialVersionUID = 1L;
 	private List<Client> clients;
+	private Random rndGen;
 	
 	protected ServerImpl() throws RemoteException {
 		super();
 		this.clients = Collections.synchronizedList(new ArrayList<Client>());
+		this.rndGen = new Random();
 	}
 
 	@Override
@@ -29,8 +32,10 @@ public class ServerImpl extends java.rmi.server.UnicastRemoteObject implements S
 	private void activateClients() throws RemoteException{
 		List<PeerEntry> peers = generatePeerEntries();
 		int index =0;
+		boolean isCand = false;
 		for(Client c: clients){
-			c.activate(peers, index++);
+			isCand = rndGen.nextBoolean();
+			c.activate(peers, index++, isCand);
 		}		
 	}
 	

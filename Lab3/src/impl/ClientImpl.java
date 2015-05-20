@@ -50,14 +50,17 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			this.rndGen = new Random();
 		}
 		
+		private boolean equalityCheck(Message m){
+			return (m.getPId() < c.id) && (m.getLevel() < this.level);
+		}
+		
 		public void handleMessage(Message m) throws RemoteException{
-			System.out.println(Integer.compare(m.getPId(), c.id) == 0);
 			if(killed == false && (Integer.compare(m.getPId(), c.id) == 0)){
 				this.level++;
 				System.out.println("I captured someone :D " + this.level );
 				this.untraversed.remove(m.getOriginId());
 			} else {
-				if (m.getPId() < c.id) {
+				if ( this.equalityCheck(m) ) {
 					System.out.println("SHOULD NOT HAPPEN");// Should not happen (should happen in ordinary message handling?)
 				} else { // MessageType should be RECAPTURED
 					System.out.println("This should say RECAPTURED: " + m.getMessageType().toString());
@@ -118,7 +121,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 
 	@Override
-	public void activate(List<PeerEntry> peers, Integer ownId)
+	public void activate(List<PeerEntry> peers, Integer ownId, Boolean isCand)
 			throws RemoteException {
 		this.id = ownId;
 		this.peers = peers;
@@ -126,10 +129,11 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.pod.id = -1;
 		this.pod.level = -1;
 		// HARDCODED:
-//		if(this.id == 0){
+		System.out.println("isCand " + isCand + " pid " + id);
+		if(isCand) {
 			this.isCandidate = true;
 			this.cd = new CandidateData(this);
-//		}
+		}
 		this.loopFlag = true;
 	}
 	

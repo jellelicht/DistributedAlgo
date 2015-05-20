@@ -7,5 +7,5 @@ import java.util.List;
 import util.PeerEntry;
 
 public interface Client extends Remote, Peer {
-	public void activate(List<PeerEntry> peers, Integer ownId) throws RemoteException;
+	public void activate(List<PeerEntry> peers, Integer ownId, Boolean isCand) throws RemoteException;
 }
