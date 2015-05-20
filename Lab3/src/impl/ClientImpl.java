@@ -55,7 +55,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			//System.out.println(Integer.compare(m.getPId(), c.id) == 0);
 			if(killed == false && (Integer.compare(m.getPId(), c.id) == 0)){
 				this.level++;
-				System.out.println("[CANDIDATE] captured " + m.getPId() );
+				System.out.println("[CANDIDATE] captured " + m.getOriginId() );
 				this.untraversed.remove(m.getOriginId());
 				this.capturing = false;
 			} else {
@@ -226,6 +226,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			waitRounds--;
 		}
 			Thread.sleep(2000); // settling time for other processes
+			System.out.println("[MAIN] starting process with id " + c.id);
 			c.mainLoop();
 	}
 }
