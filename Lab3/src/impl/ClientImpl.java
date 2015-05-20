@@ -31,6 +31,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	private class CandidateData {
+		private boolean capturing = false;
 		private boolean killed;
 		private Map<Integer, Peer> untraversed;
 		private int level;
@@ -57,14 +58,15 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		public void handleMessage(Message m) throws RemoteException{
 			if(killed == false && (Integer.compare(m.getPId(), c.id) == 0)){
 				this.level++;
-				System.out.println("I captured someone :D " + this.level );
+				System.out.println("[CANDIDATE] captured " + m.getOriginId() );
 				this.untraversed.remove(m.getOriginId());
+				this.capturing = false;
 			} else {
 				if ( this.equalityCheck(m) ) {
-					System.out.println("SHOULD NOT HAPPEN");// Should not happen (should happen in ordinary message handling?)
+					System.out.println("[YOLO] SHOULD NOT HAPPEN");// Should not happen (should happen in ordinary message handling?)
 				} else { // MessageType should be RECAPTURED
-					System.out.println("This should say RECAPTURED: " + m.getMessageType().toString());
 					//Send killed to c.peers.get(m.getPId()).p.putMessage(...)
+					System.out.println("[CANDIDATE] Got killed");
 					c.peers.get(m.getPId()).p.putMessage(killedMessage(m));
 					this.killed = true;
 				}
@@ -72,11 +74,16 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 		
 		public void attemptCapture() throws RemoteException{
+			if(this.capturing) {
+				System.out.println("[CANDIDATE] Outstanding capture request");
+				return;
+			}
 			int index = rndGen.nextInt(untraversed.size());
 			
 			Peer p = (Peer) untraversed.values().toArray()[index];
 
 			p.putMessage(captureMessage());
+			this.capturing = true;
 
 			//capMessageSent.put(p,true);
 			//untraversed.remove(index);
@@ -128,8 +135,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.pod = new PotentialOwnerData();
 		this.pod.id = -1;
 		this.pod.level = -1;
-		// HARDCODED:
-		System.out.println("isCand " + isCand + " pid " + id);
 		if(isCand) {
 			this.isCandidate = true;
 			this.cd = new CandidateData(this);
@@ -140,11 +145,11 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	// Algorithm implementation
 	public void mainLoop() throws InterruptedException {
 		// Pull messages from loop
-		System.out.println("Loop nr: " + this.loopCounter);
+		System.out.println("[MAIN] Loop counter " + this.loopCounter);
 		this.loopCounter--;
 		Message m = mq.pop();
 		if(m != null){
-			System.out.println("handling message " + m.getMessageType().toString());
+			System.out.println("[MESSAGE] handling received message of type " + m.getMessageType().toString());
 			try {
 				handleMessage(m);
 			} catch (RemoteException e) {
@@ -152,21 +157,19 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			}
 		}
 		if (isCandidate){
-			System.out.println("Candidate stuff:");
 			if(cd.isElected()){
-				System.out.println("I was elected!: Pid: " + this.id);
+				System.out.println("[CANDIDATE] - ELECTED: " + this.id);
 				loopCounter = 0;
 			}
 			else if (cd.isAlive()){
 				try {
-					System.out.println("attempt capture");
 					cd.attemptCapture();
 				} catch (RemoteException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			} else {
-				 System.out.println("Oh noes, dead candidate");
+				 System.out.println("[CANDIDATE] dead candidate - noop");
 			}
 		}
 		
@@ -205,7 +208,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	private void promoteOwner(Message msg) throws RemoteException{
-		System.out.println("Changing owner from " + owner + " to " + this.pod.id);
+		System.out.println("[OWNER] Changing owner from " + owner + " to " + this.pod.id);
 		this.owner = this.pod.id;
 		
 		this.peers.get(this.owner).p.putMessage(new MessageImpl(MessageType.CAPTURED, this.pod.level, this.pod.id, this.id));
@@ -215,16 +218,27 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		// setup registry
 		Server server = (Server) java.rmi.Naming.lookup("rmi://localhost:1089/register");				
 		ClientImpl c = new ClientImpl();
+		int loops;// = 10000; //Integer.valueOf(args[0]);
+		if(args.length < 1){
+			loops = 100;
+			//throw new RuntimeException("First argument for server should be amount of ms before activate event");
+		} else {
+			loops = Integer.valueOf(args[0]);
+		}
+		c.loopCounter = loops;
+		
 		
 		server.register(c); 
-		Thread.sleep(10000);
+		Thread.sleep(1000);
 		
 		int waitRounds = 20;
+		
 		while(!c.loopFlag && waitRounds > 0){
 			Thread.sleep(500);
 			waitRounds--;
 		}
 			Thread.sleep(2000); // settling time for other processes
+			System.out.println("[MAIN] starting process with id " + c.id);
 			c.mainLoop();
 	}
 }

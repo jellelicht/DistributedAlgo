@@ -20,7 +20,7 @@ public class MessageDeliveryQueue{
 	
 	public void insert(Message m){
 		backingList.add(m);
-		System.out.println("Added to queue: " + m.toString());
+		System.out.println("[DELIVERY] Added to queue: " + m.toString());
 	}
 	
 	public Message pop(){
