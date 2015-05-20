@@ -31,7 +31,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	private class CandidateData {
-		private boolean capturing = false;
+		private int capturing = -1;
 		private boolean killed;
 		private Map<Integer, Peer> untraversed;
 		private int level;
@@ -60,7 +60,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				this.level++;
 				System.out.println("[CANDIDATE] captured " + m.getOriginId() );
 				this.untraversed.remove(m.getOriginId());
-				this.capturing = false;
+				this.capturing = -1;
 			} else {
 				if ( this.equalityCheck(m) ) {
 					System.out.println("[YOLO] SHOULD NOT HAPPEN");// Should not happen (should happen in ordinary message handling?)
@@ -74,8 +74,8 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 		
 		public void attemptCapture() throws RemoteException{
-			if(this.capturing) {
-				System.out.println("[CANDIDATE] Outstanding capture request");
+			if(this.capturing != -1) {
+				System.out.println("[CANDIDATE] Outstanding capture request [index]" + capturing);
 				return;
 			}
 			int index = rndGen.nextInt(untraversed.size());
@@ -83,7 +83,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			Peer p = (Peer) untraversed.values().toArray()[index];
 
 			p.putMessage(captureMessage());
-			this.capturing = true;
+			this.capturing = index;
 
 			//capMessageSent.put(p,true);
 			//untraversed.remove(index);
@@ -136,8 +136,10 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.pod.id = -1;
 		this.pod.level = -1;
 		if(isCand) {
+			System.out.println("[CANDIDATE] proc " + this.id +  " is a candidate process");
 			this.isCandidate = true;
 			this.cd = new CandidateData(this);
+			this.owner = ownId;
 		}
 		this.loopFlag = true;
 	}
@@ -193,6 +195,9 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				} else {
 					this.peers.get(this.owner).p.putMessage(new MessageImpl(MessageType.RECAPTURED, this.pod.level, this.pod.id, this.id));
 				}
+				
+			} else {
+				System.out.println("[CAPTURE] ignoring capture from " + m.getPId() +  " while this.pod.id = " + this.pod.id);
 			}
 			break;
 		case RECAPTURED:
@@ -208,6 +213,10 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	private void promoteOwner(Message msg) throws RemoteException{
+		if(this.pod.id == -1){
+			System.out.println("[OWNER] Killed before getting pod");
+			return;
+		}
 		System.out.println("[OWNER] Changing owner from " + owner + " to " + this.pod.id);
 		this.owner = this.pod.id;
 		
