@@ -216,11 +216,23 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		// setup registry
 		Server server = (Server) java.rmi.Naming.lookup("rmi://localhost:1089/register");				
 		ClientImpl c = new ClientImpl();
+		int loops;// = 10000; //Integer.valueOf(args[0]);
+		if(args.length < 1){
+			loops = 100;
+			//throw new RuntimeException("First argument for server should be amount of ms before activate event");
+		} else {
+			loops = Integer.valueOf(args[0]);
+		}
+		c.loopCounter = loops;
+		
 		
 		server.register(c); 
 		Thread.sleep(10000);
 		
 		int waitRounds = 20;
+		
+		
+		
 		while(!c.loopFlag && waitRounds > 0){
 			Thread.sleep(500);
 			waitRounds--;
