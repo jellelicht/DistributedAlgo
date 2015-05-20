@@ -59,7 +59,6 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				this.untraversed.remove(m.getOriginId());
 				this.capturing = false;
 			} else {
-				
 				if (m.getPId() < c.id) {
 					System.out.println("SHOULD NOT HAPPEN");// Should not happen (should happen in ordinary message handling?)
 				} else { // MessageType should be RECAPTURED
@@ -99,8 +98,8 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 			return !this.killed;
 		}
 		public boolean isElected(){
-			System.out.println("Size: " + untraversed.size());
-			return this.killed == false && this.untraversed.size() == 1;
+			System.out.println("Size: " + this.untraversed.size());
+			return this.killed == false && this.untraversed.isEmpty();
 		}
 	}
 	private CandidateData cd;
@@ -134,10 +133,10 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		this.pod.id = -1;
 		this.pod.level = -1;
 		// HARDCODED:
-		if(this.id == 0){
+//		if(this.id == 0){
 			this.isCandidate = true;
 			this.cd = new CandidateData(this);
-		}
+//		}
 		this.loopFlag = true;
 	}
 	
