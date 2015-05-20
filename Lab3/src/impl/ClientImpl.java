@@ -186,7 +186,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	private void handleMessage(Message m) throws RemoteException{
 		switch(m.getMessageType()){
 		case CAPTURE:
-			if(m.getPId() > this.pod.id) {
+			if((m.getPId() > this.pod.id) && (m.getLevel() > this.pod.level)) {
 				this.potentialOwner = m.getPId();
 				this.pod.id = m.getPId();
 				this.pod.level = m.getLevel();
