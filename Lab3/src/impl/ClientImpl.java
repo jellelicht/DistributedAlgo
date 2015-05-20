@@ -31,6 +31,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 	}
 	
 	private class CandidateData {
+		private boolean capturing = false;
 		private boolean killed;
 		private Map<Integer, Peer> untraversed;
 		private int level;
@@ -56,6 +57,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 				this.level++;
 				System.out.println("I captured someone :D " + this.level );
 				this.untraversed.remove(m.getOriginId());
+				this.capturing = false;
 			} else {
 				
 				if (m.getPId() < c.id) {
@@ -70,11 +72,16 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		}
 		
 		public void attemptCapture() throws RemoteException{
+			if(this.capturing) {
+				System.out.println("Already capturing, return...");
+				return;
+			}
 			int index = rndGen.nextInt(untraversed.size());
 			
 			Peer p = (Peer) untraversed.values().toArray()[index];
 
 			p.putMessage(captureMessage());
+			this.capturing = true;
 
 			//capMessageSent.put(p,true);
 			//untraversed.remove(index);
