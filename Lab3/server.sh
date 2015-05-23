@@ -4,4 +4,4 @@
 # ./server.sh 8000
 # 
 cd bin
-java impl.ServerImpl $1
+java -cp . impl.ServerImpl $1

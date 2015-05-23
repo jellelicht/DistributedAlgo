@@ -7,7 +7,7 @@ rounds=$2
 
 function boot {
 	fname="../log/client_$1.log"
-	java impl.Client2 $rounds > $fname &
+	java -cp . impl.Client2 $rounds > $fname &
 	echo "Starting client $1, with output to $fname"
 }
 

@@ -246,7 +246,7 @@ public class ClientImpl extends java.rmi.server.UnicastRemoteObject implements C
 		server.register(c); 
 		Thread.sleep(1000);
 		
-		int waitRounds = 20;
+		int waitRounds = 100;
 		
 		while(!c.loopFlag && waitRounds > 0){
 			Thread.sleep(500);

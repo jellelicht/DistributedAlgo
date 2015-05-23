@@ -89,6 +89,7 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 			} else if (ph.compareTo(od) == -1) {
 				//ignore
 			} else {
+				System.out.println("[CANDIDATE] Got killed to peer " + m.getPId() + " (received : " + m.getMessageType().toString());
 				linkE.p.putMessage(new MessageImpl(MessageType.ANY, ph.level, ph.id, c.id));
 				killed = true;
 			}			
@@ -212,7 +213,7 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 		server.register(c); 
 		Thread.sleep(1000);
 		
-		int waitRounds = 60;
+		int waitRounds = 100;
 		
 		while(!c.loopFlag && waitRounds > 0){
 			Thread.sleep(500);
