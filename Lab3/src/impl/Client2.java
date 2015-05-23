@@ -24,6 +24,7 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 	private Integer noAckSent = 0;
 	private Integer noTimesCaptured = 0;
 	private Integer noKillSent = 0;
+	private Integer noCaptureSent = 0;
 	private List<PeerEntry> peers;
 	private MessageDeliveryQueue mq;
 	private boolean loopFlag = false;
@@ -75,6 +76,7 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 				int index = rndGen.nextInt(untraversed.size());
 				capturing = untraversed.get(index);
 				capturing.p.putMessage(new MessageImpl(MessageType.ANY, od.level, od.id, c.id));
+        this.noCaptureSent++;
 			} else {
 				System.out.println("Can't capture");
 			}
@@ -172,7 +174,11 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 			Thread.sleep(1000);
 			this.mainLoop();
 		} else {
-			System.out.println("PId: " + this.id + " Acks: " + this.noAckSent + " captured: " + this.noTimesCaptured + " Kills: " + this.noKillSent);
+      String m = "PId: " + this.id + " Acks: " + this.noAckSent + " Captured: " + this.noTimesCaptured + " Kills: " + this.noKillSent;
+      if(this.isCandidate){
+          m+= " captures: " + this.noCaptureSent + " maxLevel: " + od.level;
+      }
+      System.out.println(m);
 			return;
 		}
 	}
