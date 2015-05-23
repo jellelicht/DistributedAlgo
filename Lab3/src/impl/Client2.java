@@ -23,6 +23,7 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 	private Integer id;
 	private Integer noAckSent = 0;
 	private Integer noTimesCaptured = 0;
+	private Integer noKillSent = 0;
 	private List<PeerEntry> peers;
 	private MessageDeliveryQueue mq;
 	private boolean loopFlag = false;
@@ -171,7 +172,7 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 			Thread.sleep(1000);
 			this.mainLoop();
 		} else {
-			System.out.println("PId: " + this.id + " Acks: " + this.noAckSent + " captured: " + this.noTimesCaptured);
+			System.out.println("PId: " + this.id + " Acks: " + this.noAckSent + " captured: " + this.noTimesCaptured + " Kills: " + this.noKillSent);
 			return;
 		}
 	}
@@ -188,13 +189,19 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 		case 1:
 			potential_father = linkE.p;
 			od = ph;
-			if(father == null) father = potential_father;
-			father.putMessage(new MessageImpl(MessageType.ANY, ph.level, ph.id, this.id));
-			this.noTimesCaptured++;
+			if(father == null) { // If this was the first capture attempt, ack immediately
+          father = potential_father;
+          this.noTimesCaptured++;
+          this.noAckSent++;
+      } else { // We already had a father, so inquiring by KILL
+          this.noKillSent++;
+      }
+			father.putMessage(new MessageImpl(MessageType.ANY, ph.level, ph.id, this.id)); // Can be either ACK or KILL
 			break;
-		case 0:
+		case 0: 
 			father = potential_father;
 			father.putMessage(new MessageImpl(MessageType.ANY, ph.level, ph.id, this.id));
+			this.noTimesCaptured++;
 			this.noAckSent++;
 			break;
 		}
