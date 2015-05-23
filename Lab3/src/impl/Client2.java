@@ -21,6 +21,8 @@ import model.Server;
 public class Client2 extends java.rmi.server.UnicastRemoteObject implements Client{
 
 	private Integer id;
+	private Integer noAckSent = 0;
+	private Integer noTimesCaptured = 0;
 	private List<PeerEntry> peers;
 	private MessageDeliveryQueue mq;
 	private boolean loopFlag = false;
@@ -162,13 +164,14 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 			cd.attemptCapture();
 			if(cd.isElected()){
 				this.loopCounter = 0;
-				System.out.println("I was elected: " + this.id);
+				System.out.println("I was elected: " + this.id + " level: " + this.od.level);
 			}
 		}
 		if(this.loopCounter > 0) {
 			Thread.sleep(1000);
 			this.mainLoop();
 		} else {
+			System.out.println("PId: " + this.id + " Acks: " + this.noAckSent + " captured: " + this.noTimesCaptured);
 			return;
 		}
 	}
@@ -187,10 +190,12 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 			od = ph;
 			if(father == null) father = potential_father;
 			father.putMessage(new MessageImpl(MessageType.ANY, ph.level, ph.id, this.id));
+			this.noTimesCaptured++;
 			break;
 		case 0:
 			father = potential_father;
 			father.putMessage(new MessageImpl(MessageType.ANY, ph.level, ph.id, this.id));
+			this.noAckSent++;
 			break;
 		}
 		return;
