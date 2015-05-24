@@ -178,7 +178,7 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 			if(this.isCandidate){
 				msg+= " captures: " + this.noCaptureSent + " maxLevel: " + od.level;
 			}
-			System.out.println(m);
+			System.out.println(msg);
 			return;
 		}
 	}
