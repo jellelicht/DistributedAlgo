@@ -55,6 +55,9 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 		private Client2 c;
 		Random rndGen = new Random();
 
+		public String log(){
+			return "midCapture: " + (capturing != null) + " Killed: " + killed +  "Untraversed size: " + untraversed.size(); 
+		}
 		
 		public Candidate(Client2 c, List<PeerEntry> peers){
 			this.c = c;
@@ -94,7 +97,7 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 			} else if (ph.compareTo(od) == -1) {
 				//ignore
 			} else {
-				System.out.println("[CANDIDATE] Got killed to peer " + m.getPId() + " (received : " + m.getMessageType().toString());
+				System.out.println("[CANDIDATE] Got killed BY peer " + m.getPId() + " (received : " + m.getMessageType().toString());
 				linkE.p.putMessage(new MessageImpl(MessageType.ANY, ph.level, ph.id, c.id));
 				killed = true;
 			}			
@@ -174,9 +177,13 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 			Thread.sleep(1000);
 			this.mainLoop();
 		} else {
-			String msg = "PId: " + this.id + " Acks: " + this.noAckSent + " Captured: " + this.noTimesCaptured + " Kills: " + this.noKillSent;
+			String msg = "[RESULTS] PId: " + this.id + " Acks: " + this.noAckSent + " Captured: " + this.noTimesCaptured + " Kills: " + this.noKillSent;
 			if(this.isCandidate){
-				msg+= " captures: " + this.noCaptureSent + " maxLevel: " + od.level;
+				msg+= " capturesSent: " + this.noCaptureSent + " ackedCaptures/maxLevel: " + od.level;
+				msg+= " " + this.cd.log();
+				//if(this.capturing != null){
+					
+				//}
 			}
 			System.out.println(msg);
 			return;
