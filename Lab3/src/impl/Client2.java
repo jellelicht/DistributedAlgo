@@ -56,7 +56,7 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 		Random rndGen = new Random();
 
 		public String log(){
-			return "midCapture: " + (capturing != null) + " Killed: " + killed +  "Untraversed size: " + untraversed.size(); 
+			return "midCapture: " + (capturing != null) + " Killed: " + killed +  " Untraversed size: " + untraversed.size(); 
 		}
 		
 		public Candidate(Client2 c, List<PeerEntry> peers){
