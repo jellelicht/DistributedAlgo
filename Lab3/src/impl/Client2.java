@@ -80,6 +80,7 @@ public class Client2 extends java.rmi.server.UnicastRemoteObject implements Clie
 				capturing = untraversed.get(index);
 				capturing.p.putMessage(new MessageImpl(MessageType.ANY, od.level, od.id, c.id));
 				c.noCaptureSent++;
+				System.out.println("Attempting to capture " + capturing.peerId);
 			} else {
 				System.out.println("Can't capture");
 			}

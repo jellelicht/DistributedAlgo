@@ -18,12 +18,12 @@ public class MessageDeliveryQueue{
 		backingList = Collections.synchronizedList(new ArrayList<Message>());
 	}
 	
-	public void insert(Message m){
+	public synchronized void insert(Message m){
 		backingList.add(m);
 		System.out.println("[DELIVERY] Added to queue: " + m.toString());
 	}
 	
-	public Message pop(){
+	public synchronized Message pop(){
 		Message retval = null;
 		if(backingList.size() > 0){
 			retval = backingList.remove(0);			
